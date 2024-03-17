@@ -15,6 +15,7 @@
 #include <SDL.h>
 #include <SDL2/SDL_image.h>
 #include "CardTexture.hpp"
+#include "Card.hpp"
 
 class Game{
 public:

@@ -71,8 +71,7 @@ void Game::close(){
 }
 
 void Game::gameLoop(){
-    clubs2 = std::make_unique<CardTexture>(gRenderer, "../data/2_of_clubs.png");
-    
+    Card card(gRenderer, Suit::HEARTS, 'K');
 
     while( !quit )
     {
@@ -92,7 +91,7 @@ void Game::gameLoop(){
 
         //Update screen
         SDL_RenderCopy(gRenderer, background, NULL, NULL);
-        clubs2->render(400, 400);
+        card.render();
         
         SDL_SetRenderDrawColor( gRenderer, 0x0, 0x0, 0x0, 0x0 );
         
