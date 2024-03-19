@@ -47,6 +47,7 @@ bool Game::init(){
                     {
                         SDL_ShowSimpleMessageBox(0, "Texture init error", SDL_GetError(), gWindow);
                     }
+                    
                 }
             }
         }
@@ -71,7 +72,7 @@ void Game::close(){
 }
 
 void Game::gameLoop(){
-    Card card(gRenderer, Suit::HEARTS, 'K');
+    deck = std::make_unique<CardDeck>(gRenderer);
 
     while( !quit )
     {
@@ -91,7 +92,8 @@ void Game::gameLoop(){
 
         //Update screen
         SDL_RenderCopy(gRenderer, background, NULL, NULL);
-        card.render();
+        // render cards here
+        //card.render();
         
         SDL_SetRenderDrawColor( gRenderer, 0x0, 0x0, 0x0, 0x0 );
         

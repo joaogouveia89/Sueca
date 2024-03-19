@@ -11,11 +11,10 @@
 #include <stdio.h>
 #include <iostream>
 #include <string>
-#include<memory>
+#include <memory>
 #include <SDL.h>
 #include <SDL2/SDL_image.h>
-#include "CardTexture.hpp"
-#include "Card.hpp"
+#include "CardDeck.hpp"
 
 class Game{
 public:
@@ -33,6 +32,8 @@ private:
     
     bool success { true };
     bool quit { false };
+
+    std::unique_ptr<CardDeck> deck;
     
     SDL_Event e;
     SDL_Window* gWindow { NULL };

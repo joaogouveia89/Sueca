@@ -8,13 +8,11 @@ CardTexture::CardTexture(SDL_Renderer* renderer, std::string imagePath){
     mHeight = 0;
     
     auto isSuccessFull = loadFromFile(imagePath);
-    std::cout << imagePath << " loaded successfull -> " << isSuccessFull << std::endl;
 }
 
 CardTexture::~CardTexture()
 {
     //Deallocate
-    std::cout << "Deallocated texture" << std::endl;
     free();
 }
 

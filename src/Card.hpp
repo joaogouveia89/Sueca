@@ -3,6 +3,8 @@
 #include <memory>
 #include <string>
 #include <sstream>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 #include "CardTexture.hpp"
 
 enum class Suit{
