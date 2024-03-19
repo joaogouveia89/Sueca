@@ -1,7 +1,6 @@
 #include "Card.hpp"
 
 Card::Card(SDL_Renderer* gRenderer, Suit suit, char symbol){
-
     this->suit = suit;
     this->symbol = symbol;
 

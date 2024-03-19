@@ -12,9 +12,11 @@
 #include <iostream>
 #include <string>
 #include <memory>
+#include <algorithm>
 #include <SDL.h>
 #include <SDL2/SDL_image.h>
 #include "CardDeck.hpp"
+#include "Player.hpp"
 
 class Game{
 public:
@@ -34,6 +36,10 @@ private:
     bool quit { false };
 
     std::unique_ptr<CardDeck> deck;
+    std::unique_ptr<Player> p0;
+    std::unique_ptr<Player> p1;
+    std::unique_ptr<Player> p2;
+    std::unique_ptr<Player> p3;
     
     SDL_Event e;
     SDL_Window* gWindow { NULL };

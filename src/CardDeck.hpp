@@ -20,7 +20,9 @@ public:
 
     void Shuffle();
 
-    std::shared_ptr<Card> GetCard(int idx){ return deck.at(idx); }
+    std::vector<std::shared_ptr<Card>> Get10Cards();
+
+    std::shared_ptr<Card> GetCard(int idx) const{ return deck.at(idx); }
 
     ~CardDeck();
 };

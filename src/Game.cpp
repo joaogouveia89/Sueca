@@ -73,7 +73,22 @@ void Game::close(){
 
 void Game::gameLoop(){
     deck = std::make_unique<CardDeck>(gRenderer);
+
+    p0 = std::make_unique<Player>(0, "Joao");
+    p1 = std::make_unique<Player>(1, "Thomas");
+    p2 = std::make_unique<Player>(2, "Cecilia");
+    p3 = std::make_unique<Player>(3, "Rosa");
+
     deck->Shuffle();
+
+    p0->SetCards(std::move(deck->Get10Cards()));
+    p1->SetCards(std::move(deck->Get10Cards()));
+    p2->SetCards(std::move(deck->Get10Cards()));
+    p3->SetCards(std::move(deck->Get10Cards()));
+   
+
+    //distributing cards
+    
 
     while( !quit )
     {
@@ -94,7 +109,7 @@ void Game::gameLoop(){
         //Update screen
         SDL_RenderCopy(gRenderer, background, NULL, NULL);
         // render cards here
-        deck->GetCard(35)->render();
+        //deck->GetCard(35)->render();
         //card.render();
         
         SDL_SetRenderDrawColor( gRenderer, 0x0, 0x0, 0x0, 0x0 );

@@ -21,3 +21,10 @@ void CardDeck::Shuffle() {
     auto rng = std::default_random_engine { rd() };
     std::shuffle(std::begin(deck), std::end(deck), rng);
 }
+
+std::vector<std::shared_ptr<Card>> CardDeck::Get10Cards(){
+    std::vector<std::shared_ptr<Card>> subDeck = {deck.begin(), deck.begin() + 10};
+    // Remove the first 10 cards from the main deck
+    deck.erase(deck.begin(), deck.begin() + 10);
+    return std::move(subDeck);
+}
