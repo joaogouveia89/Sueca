@@ -73,6 +73,7 @@ void Game::close(){
 
 void Game::gameLoop(){
     deck = std::make_unique<CardDeck>(gRenderer);
+    deck->Shuffle();
 
     while( !quit )
     {
@@ -93,6 +94,7 @@ void Game::gameLoop(){
         //Update screen
         SDL_RenderCopy(gRenderer, background, NULL, NULL);
         // render cards here
+        deck->GetCard(35)->render();
         //card.render();
         
         SDL_SetRenderDrawColor( gRenderer, 0x0, 0x0, 0x0, 0x0 );

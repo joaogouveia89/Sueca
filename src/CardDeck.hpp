@@ -5,6 +5,8 @@
 #include <memory>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <algorithm>
+#include <random>
 #include "Card.hpp"
 
 class CardDeck
@@ -15,6 +17,8 @@ private:
 
 public:
     CardDeck(SDL_Renderer* gRenderer);
+
+    void Shuffle();
 
     std::shared_ptr<Card> GetCard(int idx){ return deck.at(idx); }
 

@@ -15,3 +15,9 @@ CardDeck::CardDeck(SDL_Renderer* gRenderer):
 }
 
 CardDeck::~CardDeck(){}
+
+void CardDeck::Shuffle() {
+    auto rd = std::random_device {}; 
+    auto rng = std::default_random_engine { rd() };
+    std::shuffle(std::begin(deck), std::end(deck), rng);
+}
