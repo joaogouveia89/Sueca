@@ -23,7 +23,7 @@ private:
     int firstPlayer;
 
     void processEvents();
-    void update();
+    void update(float deltaTime); // Mude de void update() para isso
     void render();
 
     // SFML 3 usa Vector2u para tamanhos de janela

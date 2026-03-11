@@ -17,12 +17,15 @@ private:
     const sf::Texture& frontTexture;
     const sf::Texture& backTexture;
     bool faceUp = true;
+    sf::Vector2f currentPos;
+    sf::Vector2f targetPos;
+    float rotation;
+    float targetRotation;
 
 public:
     // O construtor agora passa a textura adiante para o sprite
     Card(Suit s, char sym, const sf::Texture& front, const sf::Texture& back);
     
-    void setPosition(float x, float y);
     void setFaceUp(bool up);
     void render(sf::RenderWindow& window);
     
@@ -31,7 +34,15 @@ public:
     int getPoints() const { return points; }
     
     static int calculatePoints(char sym);
-    void setRotation(float angle) { sprite.setRotation(sf::degrees(angle)); }
+    // Card.hpp
+    void setPosition(sf::Vector2f pos, bool immediate = false);
+    // Adicione esta linha para suportar o código antigo (x, y):
+    void setPosition(float x, float y, bool immediate = false) { 
+        setPosition({x, y}, immediate); 
+    }
+    void setRotation(float angle, bool immediate = false);
+
+    void update(float deltaTime);
 };
 
 #endif

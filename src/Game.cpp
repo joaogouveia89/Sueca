@@ -42,27 +42,32 @@ Game::Game()
     players.push_back(std::make_unique<Player>(3, "CPU 3", true));
 
     // Distribuir 10 cartas para cada
-    for (int i = 0; i < players.size(); ++i) {
-        // Usamos players[i] para acessar o jogador atual do loop
-        players[i]->setCards(deck->drawCards(10));
+    sf::Vector2f deckPos{640.0f, 360.0f}; // Centro da mesa
+
+    // Inicializa os jogadores e distribui cartas
+    for (int i = 0; i < 4; i++) {
+        players.push_back(std::make_unique<Player>(i, "Nome", i != 0));
+        auto dealtCards = deck->drawCards(10);
         
-        // Se não for o Player 0 (Humano), vira as cartas para baixo
-        if (i != 0) {
-            for (auto& card : players[i]->getHand()) {
-                card->setFaceUp(false);
-            }
+        for (auto& card : dealtCards) {
+            // TODAS as cartas nascem no centro da mesa
+            card->setPosition(deckPos, true); 
+            card->setRotation(0.0f, true);
         }
+        players[i]->setCards(dealtCards);
     }
 }
 
 Game::~Game() {}
 
 void Game::run() {
-    window.setFramerateLimit(60);
-
+    sf::Clock clock;
     while (window.isOpen()) {
+        sf::Time dt = clock.restart();
+        float deltaTime = dt.asSeconds();
+
         processEvents();
-        update();
+        update(deltaTime); // Passamos o tempo decorrido
         render();
     }
 }
@@ -85,8 +90,50 @@ void Game::processEvents() {
     }
 }
 
-void Game::update() {
-    // Lógica de jogo (IA, turnos, etc)
+void Game::update(float deltaTime) {
+    for (int i = 0; i < players.size(); ++i) {
+        const auto& hand = players[i]->getHand();
+        float spacing = 40.0f; // Espaço entre cartas
+
+        for (size_t j = 0; j < hand.size(); ++j) {
+            sf::Vector2f target;
+            float rot = 0.0f;
+
+            if (i == 0) { // BAIXO (Humano)
+                target.x = 400.0f + (j * 50.0f);
+                target.y = 600.0f;
+                rot = 0.0f;
+            } 
+            else if (i == 1) { // DIREITA (CPU 1)
+                target.x = 1100.0f;
+                target.y = 200.0f + (j * spacing);
+                rot = 270.0f;
+            } 
+            else if (i == 2) { // CIMA (CPU 2)
+                // Inverti o cálculo para elas espalharem da esquerda para a direita
+                target.x = 800.0f - (j * 50.0f); 
+                target.y = 120.0f;
+                rot = 180.0f;
+            } 
+            else if (i == 3) { // ESQUERDA (CPU 3)
+                target.x = 180.0f;
+                target.y = 500.0f - (j * spacing);
+                rot = 90.0f;
+            }
+
+            // Define os alvos para a animação
+            hand[j]->setPosition(target);
+            hand[j]->setRotation(rot);
+
+            // Processa o movimento suave (Lerp)
+            hand[j]->update(deltaTime);
+        }
+    }
+    
+    // Não esqueça de atualizar as cartas que estiverem na mesa também!
+    for (auto& card : tableCards) {
+        card->update(deltaTime);
+    }
 }
 
 void Game::render() {
