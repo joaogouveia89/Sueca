@@ -2,59 +2,70 @@
 #include <iostream>
 
 CardDeck::CardDeck() {
+    loadBackTexture();
+    generateDeck();
+}
+
+void CardDeck::loadBackTexture() {
+    std::string fullPath = ASSETS_PATH + CARD_BACK_FILE;
+    if (!textureCache["back"].loadFromFile(fullPath)) {
+        std::cerr << "Error loading card back texture: " << fullPath << std::endl;
+    }
+}
+
+void CardDeck::generateDeck() {
     char symbols[] = {'2', '3', '4', '5', '6', '7', 'J', 'Q', 'K', 'A'};
     Suit suits[] = {Suit::SPADES, Suit::HEARTS, Suit::DIAMONDS, Suit::CLUBS};
 
     for (auto s : suits) {
-
-        if (!textureCache["back"].loadFromFile("data/back.png")) {
-            std::cerr << "Erro ao carregar back.png" << std::endl;
-        }
-
-
         for (auto sym : symbols) {
-            std::string name = getFileName(s, sym);
-            // No SFML 3, loadFromFile retorna um bool que não deve ser ignorado
+            std::string name = buildFileName(s, sym);
+            
+            // Load texture if not already cached
             if (textureCache.find(name) == textureCache.end()) {
-                // REMOVA o "../" do início do caminho
-                if (!textureCache[name].loadFromFile("data/" + name + ".png")) {
-                    std::cerr << "Falha ao carregar: " << name << std::endl;
+                std::string fullPath = ASSETS_PATH + name + FILE_EXTENSION;
+                if (!textureCache[name].loadFromFile(fullPath)) {
+                    std::cerr << "Failed to load texture: " << fullPath << std::endl;
                 }
             }
+            
             deck.push_back(std::make_shared<Card>(s, sym, textureCache[name], textureCache["back"]));
         }
     }
 }
 
-std::string CardDeck::getFileName(Suit s, char sym) {
-    std::string n;
-    if(sym == 'J') n = "jack";
-    else if(sym == 'Q') n = "queen";
-    else if(sym == 'K') n = "king";
-    else if(sym == 'A') n = "ace";
-    else n = std::string(1, sym);
+std::string CardDeck::buildFileName(Suit s, char sym) {
+    std::string fileName;
+    
+    if (sym == 'J') fileName = "jack";
+    else if (sym == 'Q') fileName = "queen";
+    else if (sym == 'K') fileName = "king";
+    else if (sym == 'A') fileName = "ace";
+    else fileName = std::string(1, sym);
 
-    n += "_of_";
-    if(s == Suit::SPADES) n += "spades";
-    else if(s == Suit::HEARTS) n += "hearts";
-    else if(s == Suit::DIAMONDS) n += "diamonds";
-    else n += "clubs";
-    return n;
+    fileName += "_of_";
+    
+    if (s == Suit::SPADES) fileName += "spades";
+    else if (s == Suit::HEARTS) fileName += "hearts";
+    else if (s == Suit::DIAMONDS) fileName += "diamonds";
+    else fileName += "clubs";
+    
+    return fileName;
 }
 
 void CardDeck::shuffle() {
-    std::shuffle(deck.begin(), deck.end(), std::default_random_engine(std::random_device{}()));
+    std::random_device rd;
+    std::default_random_engine rng(rd());
+    std::shuffle(deck.begin(), deck.end(), rng);
 }
 
-// Implementação que faltava para o Linker encontrar
 std::vector<std::shared_ptr<Card>> CardDeck::drawCards(int count) {
     std::vector<std::shared_ptr<Card>> hand;
     
-    // Garante que não tentamos tirar mais cartas do que existem
-    int actualCount = std::min(count, (int)deck.size());
+    // Ensure we don't draw more cards than available
+    int actualCount = std::min(count, static_cast<int>(deck.size()));
 
     for (int i = 0; i < actualCount; ++i) {
-        // Pegamos do final do vetor (back) pois é O(1), mais eficiente
         hand.push_back(deck.back());
         deck.pop_back();
     }

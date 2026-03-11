@@ -13,13 +13,13 @@ protected:
     std::vector<std::shared_ptr<Card>> hand;
     bool isCPU;
 
+    int findCardMatchingSuit(Suit leadSuit) const;
+
 public:
     Player(int _id, std::string _name, bool _isCPU = true);
     virtual ~Player();
 
     void setCards(std::vector<std::shared_ptr<Card>> cards);
-    
-    // ADICIONE ESTA LINHA ABAIXO:
     const std::vector<std::shared_ptr<Card>>& getHand() const { return hand; }
 
     virtual std::shared_ptr<Card> playCard(int index = 0);

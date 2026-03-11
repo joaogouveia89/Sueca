@@ -1,19 +1,21 @@
 #include "Card.hpp"
 
-// Correção 1: Inicializar o sprite explicitamente na lista de inicialização
 Card::Card(Suit s, char sym, const sf::Texture& front, const sf::Texture& back) 
     : suit(s), symbol(sym), frontTexture(front), backTexture(back), sprite(front)
 {
-    // Agora o sprite já existe, podemos configurar o resto
+    // Setup sprite origin to its center
     auto bounds = sprite.getLocalBounds();
     sprite.setOrigin({bounds.size.x / 2.0f, bounds.size.y / 2.0f});
-    sprite.setScale({0.2f, 0.2f});
+    sprite.setScale({DEFAULT_SCALE, DEFAULT_SCALE});
     
-    faceUp = true; // Por padrão começa visível
+    faceUp = true;
     points = calculatePoints(sym);
 
+    // Default spawn position (Center of a 1280x720 screen)
     currentPos = {640.0f, 360.0f};
     targetPos = {640.0f, 360.0f};
+    rotation = 0.0f;
+    targetRotation = 0.0f;
     
     sprite.setPosition(currentPos);
 }
@@ -51,20 +53,15 @@ void Card::setRotation(float angle, bool immediate) {
 }
 
 void Card::update(float deltaTime) {
-    // Fator de suavização (ajuste conforme o gosto)
-    float moveSpeed = 8.0f;
-    float rotSpeed = 10.0f;
-
-    // Aproxima a posição atual da posição alvo (Lerp)
-    currentPos += (targetPos - currentPos) * moveSpeed * deltaTime;
+    // Linear Interpolation (Lerp) for smooth movement
+    currentPos += (targetPos - currentPos) * MOVE_SPEED * deltaTime;
     
-    // Aproxima a rotação (suavização simples)
-    rotation += (targetRotation - rotation) * rotSpeed * deltaTime;
+    // Simple smoothing for rotation
+    rotation += (targetRotation - rotation) * ROTATION_SPEED * deltaTime;
 
     sprite.setPosition(currentPos);
     sprite.setRotation(sf::degrees(rotation));
 }
-
 
 void Card::render(sf::RenderWindow& window) {
     window.draw(sprite);

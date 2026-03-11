@@ -11,33 +11,34 @@ void Player::setCards(std::vector<std::shared_ptr<Card>> cards) {
 }
 
 std::shared_ptr<Card> Player::playCard(int index) {
-    if (index < 0 || (size_t)index >= hand.size()) return nullptr;
+    if (index < 0 || static_cast<size_t>(index) >= hand.size()) {
+        return nullptr;
+    }
 
     auto chosenCard = hand[index];
     hand.erase(hand.begin() + index);
     return chosenCard;
 }
 
+int Player::findCardMatchingSuit(Suit leadSuit) const {
+    for (size_t i = 0; i < hand.size(); ++i) {
+        if (hand[i]->getSuit() == leadSuit) {
+            return static_cast<int>(i);
+        }
+    }
+    return -1; // Suit not found
+}
+
 std::shared_ptr<Card> Player::thinkAndPlay(Suit leadSuit, bool isFirstToPlay) {
-    if (!isCPU) return nullptr;
+    if (!isCPU || hand.empty()) return nullptr;
 
     int chosenIndex = 0;
 
-    if (isFirstToPlay) {
-        // Se for o primeiro a jogar, joga qualquer uma (ou a maior que tiver)
-        chosenIndex = 0; 
-    } else {
-        // Tenta encontrar uma carta que siga o naipe inicial
-        bool foundSuit = false;
-        for (int i = 0; i < hand.size(); ++i) {
-            if (hand[i]->getSuit() == leadSuit) {
-                chosenIndex = i;
-                foundSuit = true;
-                break;
-            }
+    if (!isFirstToPlay) {
+        int matchingSuitIndex = findCardMatchingSuit(leadSuit);
+        if (matchingSuitIndex != -1) {
+            chosenIndex = matchingSuitIndex;
         }
-        // Se não tiver o naipe, joga a primeira carta (corta ou descarta lixo)
-        if (!foundSuit) chosenIndex = 0;
     }
 
     return playCard(chosenIndex);

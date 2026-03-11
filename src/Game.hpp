@@ -13,29 +13,44 @@ public:
     Game();
     ~Game();
 
-    void run(); // Vamos usar 'run' em vez de 'gameLoop' para seguir o padrão moderno
+    void run(); 
 
 private:
-    private:
-    std::vector<std::shared_ptr<Card>> tableCards;
-    Suit leadSuit;
-    Suit trumpSuit;
-    int firstPlayer;
 
-    void processEvents();
-    void update(float deltaTime); // Mude de void update() para isso
-    void render();
-
-    // SFML 3 usa Vector2u para tamanhos de janela
-    const sf::Vector2u windowSize{1280, 720};
-    const std::string gameTitle = "Sueca SFML 3";
-
+    // Constants
+    const sf::Vector2u WINDOW_SIZE{1280, 720};
+    const std::string GAME_TITLE = "Sueca";
+    const std::string BG_PATH = "data/bg.png";
+    const sf::Vector2f DECK_SPAWN_POS{640.0f, 360.0f};
+    
+    // Core game components
     sf::RenderWindow window;
     sf::Texture backgroundTexture;
     sf::Sprite backgroundSprite;
 
     std::unique_ptr<CardDeck> deck;
     std::vector<std::unique_ptr<Player>> players;
+    std::vector<std::shared_ptr<Card>> tableCards;
+
+    // Game state variables
+    Suit leadSuit;
+    Suit trumpSuit;
+    int firstPlayer;
+
+    // Initialization helpers
+    void setupMacOSPath();
+    void loadBackground();
+    void initializePlayers();
+    void dealCards();
+
+    // Loop helpers
+    void processEvents();
+    void update(float deltaTime);
+    void render();
+    
+    // Animation helpers
+    void updatePlayerCardPositions(float deltaTime);
+    void updateTableCardPositions(float deltaTime);
 };
 
 #endif

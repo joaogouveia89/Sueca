@@ -2,10 +2,10 @@
 #include "Game.hpp"
 
 int main(int argc, char* args[]) {
-    // O construtor já inicializa a janela e carrega as texturas
+    // Game initialization and resource loading
     Game game;
 
-    // O método 'run' contém o loop principal (processEvents, update, render)
+    // Start main game loop (Events, Update, Render)
     game.run();
 
     return 0;
