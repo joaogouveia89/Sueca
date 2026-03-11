@@ -36,6 +36,23 @@ int Card::calculatePoints(char sym) {
     }
 }
 
+int Card::getSuecaPower(char sym) {
+    // Returns a numeric value for the card's strength in Swedish.
+    switch(sym) {
+        case 'A': return 10;
+        case '7': return 9;
+        case 'K': return 8;
+        case 'J': return 7;
+        case 'Q': return 6;
+        case '6': return 5;
+        case '5': return 4;
+        case '4': return 3;
+        case '3': return 2;
+        case '2': return 1;
+        default:  return 0;
+    }
+}
+
 void Card::setPosition(sf::Vector2f pos, bool immediate) {
     targetPos = pos;
     if (immediate) {

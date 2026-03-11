@@ -82,6 +82,8 @@ void Game::dealCards() {
         players[i]->setCards(dealtCards);
     }
 
+    players[0]->sortHand();
+
     // Define the trump card as the last card dealt to CPU 3 (Left player).
     // Because CPU 3 is rendered last, this card will appear visually on top of the deck!
     trumpCardRef = players[3]->getHand().back();

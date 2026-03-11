@@ -27,6 +27,7 @@ public:
 
     bool checkIsCPU() const { return isCPU; }
     std::string getName() const { return name; }
+    void sortHand();
 };
 
 #endif

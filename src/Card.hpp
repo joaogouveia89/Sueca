@@ -40,6 +40,7 @@ public:
     int getPoints() const { return points; }
     
     static int calculatePoints(char sym);
+    static int getSuecaPower(char sym);
     
     void setPosition(sf::Vector2f pos, bool immediate = false);
     void setPosition(float x, float y, bool immediate = false) { 

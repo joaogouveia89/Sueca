@@ -29,6 +29,17 @@ int Player::findCardMatchingSuit(Suit leadSuit) const {
     return -1; // Suit not found
 }
 
+void Player::sortHand() {
+    std::sort(hand.begin(), hand.end(), [](const std::shared_ptr<Card>& a, const std::shared_ptr<Card>& b) {
+        // 1st Criterion: Group by Suit
+        if (a->getSuit() != b->getSuit()) {
+            return a->getSuit() < b->getSuit();
+        }
+        // 2nd Criterion: Descending Order of Power (from greatest to least)
+        return Card::getSuecaPower(a->getSymbol()) > Card::getSuecaPower(b->getSymbol());
+    });
+}
+
 std::shared_ptr<Card> Player::thinkAndPlay(Suit leadSuit, bool isFirstToPlay) {
     if (!isCPU || hand.empty()) return nullptr;
 
