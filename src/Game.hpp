@@ -17,6 +17,15 @@ public:
 
 private:
 
+    enum class GameState {
+        SHOWING_TRUMP,
+        PLAYING
+    };
+
+    GameState currentState;
+    float stateTimer;
+    std::shared_ptr<Card> trumpCardRef;
+
     // Constants
     const sf::Vector2u WINDOW_SIZE{1280, 720};
     const std::string GAME_TITLE = "Sueca";
@@ -47,6 +56,11 @@ private:
     void processEvents();
     void update(float deltaTime);
     void render();
+
+    // State machine helpers
+    void updateShowingTrumpState(float deltaTime);
+    void updatePlayingState(float deltaTime);
+    void transitionToPlayingState();
 
     void handleMouseClick(sf::Vector2f mousePos);
     void playHumanCard(int cardIndex);

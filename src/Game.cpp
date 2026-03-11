@@ -68,15 +68,29 @@ void Game::initializePlayers() {
 void Game::dealCards() {
     const int CARDS_PER_PLAYER = 10;
 
-    for (int i = 0; i < players.size(); i++) {
+    for (size_t i = 0; i < players.size(); i++) {
         auto dealtCards = deck->drawCards(CARDS_PER_PLAYER);
         
         for (auto& card : dealtCards) {
+            // Keep cards in the center initially
             card->setPosition(DECK_SPAWN_POS, true); 
             card->setRotation(0.0f, true);
+            
+            // All cards start face down
+            card->setFaceUp(false); 
         }
         players[i]->setCards(dealtCards);
     }
+
+    // Define the trump card as the last card dealt to CPU 3 (Left player).
+    // Because CPU 3 is rendered last, this card will appear visually on top of the deck!
+    trumpCardRef = players[3]->getHand().back();
+    trumpCardRef->setFaceUp(true); // Reveal the trump
+    trumpSuit = trumpCardRef->getSuit();
+
+    // Initialize state machine
+    currentState = GameState::SHOWING_TRUMP;
+    stateTimer = 0.0f;
 }
 
 void Game::run() {
@@ -114,12 +128,14 @@ void Game::processEvents() {
 }
 
 void Game::handleMouseClick(sf::Vector2f mousePos) {
+    // Protect input: Do not allow playing cards while dealing or showing trump
+    if (currentState != GameState::PLAYING) return;
+
     const auto& hand = players[0]->getHand();
 
     // Reverse Z-index sweep: ensures we only click the card that is visually "on top"
     for (int j = static_cast<int>(hand.size()) - 1; j >= 0; --j) {
         if (hand[j]->getBounds().contains(mousePos)) {
-            // Register the play and break the loop to ignore cards underneath
             playHumanCard(j);
             break; 
         }
@@ -194,9 +210,55 @@ void Game::updateTableCardPositions(float deltaTime) {
 }
 
 void Game::update(float deltaTime) {
+    // The main update loop now acts as a clean state router
+    switch (currentState) {
+        case GameState::SHOWING_TRUMP:
+            updateShowingTrumpState(deltaTime);
+            break;
+        case GameState::PLAYING:
+            updatePlayingState(deltaTime);
+            break;
+    }
+}
+
+void Game::updateShowingTrumpState(float deltaTime) {
+    stateTimer += deltaTime;
+    
+    // Check if it's time to deal the cards
+    if (stateTimer >= 2.0f) {
+        transitionToPlayingState();
+    }
+    
+    // Keep updating animations (they will stay smoothly at DECK_SPAWN_POS)
+    for (const auto& player : players) {
+        for (const auto& card : player->getHand()) {
+            card->update(deltaTime); 
+        }
+    }
+    updateTableCardPositions(deltaTime);
+}
+
+void Game::transitionToPlayingState() {
+    currentState = GameState::PLAYING;
+    
+    // Hide the trump card again (it belongs to CPU 3)
+    trumpCardRef->setFaceUp(false); 
+    
+    // Reveal ONLY the human player's cards
+    for (auto& card : players[0]->getHand()) {
+        card->setFaceUp(true);
+    }
+    
+    // Note: The next frame will call updatePlayingState, 
+    // which automatically calculates the new targets and triggers the dealing animation!
+}
+
+void Game::updatePlayingState(float deltaTime) {
+    // Normal game loop: calculate target coordinates and fly cards to hands
     updatePlayerCardPositions(deltaTime);
     updateTableCardPositions(deltaTime);
 }
+
 
 void Game::render() {
     window.clear(sf::Color::Black);
