@@ -48,6 +48,8 @@ public:
     
     void setRotation(float angle, bool immediate = false);
     void update(float deltaTime);
+
+    sf::FloatRect getBounds() const;
 };
 
 #endif

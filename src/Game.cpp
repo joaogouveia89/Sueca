@@ -102,6 +102,48 @@ void Game::processEvents() {
                 window.close();
             }
         }
+
+        if (const auto* mousePressed = event->getIf<sf::Event::MouseButtonPressed>()) {
+            if (mousePressed->button == sf::Mouse::Button::Left) {
+                // Convert screen click pixel to 2D world coordinates
+                sf::Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
+                handleMouseClick(mousePos);
+            }
+        }
+    }
+}
+
+void Game::handleMouseClick(sf::Vector2f mousePos) {
+    const auto& hand = players[0]->getHand();
+
+    // Reverse Z-index sweep: ensures we only click the card that is visually "on top"
+    for (int j = static_cast<int>(hand.size()) - 1; j >= 0; --j) {
+        if (hand[j]->getBounds().contains(mousePos)) {
+            // Register the play and break the loop to ignore cards underneath
+            playHumanCard(j);
+            break; 
+        }
+    }
+}
+
+void Game::playHumanCard(int cardIndex) {
+    // 1. Remove the card from the Human player's hand (id 0)
+    std::shared_ptr<Card> playedCard = players[0]->playCard(cardIndex);
+    
+    if (playedCard) {
+        // 2. Add the card to the table cards vector
+        tableCards.push_back(playedCard);
+        
+        // 3. Set the target position towards the center of the table
+        // (Using a slight Y offset to represent the bottom player's position)
+        sf::Vector2f tableBottomPos{640.0f, 420.0f};
+        playedCard->setPosition(tableBottomPos);
+        playedCard->setRotation(0.0f); // Ensure the card is straight
+        
+        // Note: The animation engine (updateTableCardPositions) 
+        // will make the card slide smoothly to this new target!
+        
+        // TODO: Change game state and trigger CPU 1's turn
     }
 }
 

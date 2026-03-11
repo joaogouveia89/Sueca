@@ -47,6 +47,9 @@ private:
     void processEvents();
     void update(float deltaTime);
     void render();
+
+    void handleMouseClick(sf::Vector2f mousePos);
+    void playHumanCard(int cardIndex);
     
     // Animation helpers
     void updatePlayerCardPositions(float deltaTime);

@@ -52,6 +52,10 @@ void Card::setRotation(float angle, bool immediate) {
     }
 }
 
+sf::FloatRect Card::getBounds() const {
+    return sprite.getGlobalBounds();
+}
+
 void Card::update(float deltaTime) {
     // Linear Interpolation (Lerp) for smooth movement
     currentPos += (targetPos - currentPos) * MOVE_SPEED * deltaTime;
