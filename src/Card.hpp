@@ -25,6 +25,7 @@ public:
     int getPoints() const { return points; }
     
     static int calculatePoints(char sym);
+    void setRotation(float angle) { sprite.setRotation(sf::degrees(angle)); }
 };
 
 #endif

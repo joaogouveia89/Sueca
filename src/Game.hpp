@@ -16,6 +16,12 @@ public:
     void run(); // Vamos usar 'run' em vez de 'gameLoop' para seguir o padrão moderno
 
 private:
+    private:
+    std::vector<std::shared_ptr<Card>> tableCards;
+    Suit leadSuit;
+    Suit trumpSuit;
+    int firstPlayer;
+
     void processEvents();
     void update();
     void render();

@@ -4,8 +4,10 @@
 Card::Card(Suit s, char sym, const sf::Texture& tex) 
     : suit(s), symbol(sym), sprite(tex) { 
     
-    // Correção 2: setScale agora pede um sf::Vector2f
-    sprite.setScale({0.2f, 0.2f}); 
+    auto bounds = sprite.getLocalBounds();
+    sprite.setOrigin({bounds.size.x / 2.0f, bounds.size.y / 2.0f});
+    
+    sprite.setScale({0.2f, 0.2f});
     points = calculatePoints(sym);
 }
 

@@ -35,8 +35,16 @@ Game::Game()
     deck = std::make_unique<CardDeck>();
     deck->shuffle();
     
-    players.push_back(std::make_unique<Player>(0, "Voce", false));
-    players[0]->setCards(deck->drawCards(10));
+    // Criar os 4 jogadores
+    players.push_back(std::make_unique<Player>(0, "Voce", false)); // Humano
+    players.push_back(std::make_unique<Player>(1, "CPU 1", true));
+    players.push_back(std::make_unique<Player>(2, "CPU 2", true));
+    players.push_back(std::make_unique<Player>(3, "CPU 3", true));
+
+    // Distribuir 10 cartas para cada
+    for (auto& player : players) {
+        player->setCards(deck->drawCards(10));
+    }
 }
 
 Game::~Game() {}
@@ -75,21 +83,38 @@ void Game::update() {
 
 void Game::render() {
     window.clear();
-    
-    // 1. Desenha o fundo
     window.draw(backgroundSprite);
-    
-    // 2. Desenha a mão do jogador 0 (Humano)
-    // No Game.cpp, dentro do render()
-    if (!players.empty() && !players[0]->getHand().empty()) {
-        float xPos = 150.0f; 
-        float yPos = 550.0f; 
-        float spacing = 60.0f; // Diminuindo o espaço elas se sobrepõem elegantemente
 
-        for (auto& card : players[0]->getHand()) {
-            card->setPosition(xPos, yPos);
-            card->render(window);
-            xPos += spacing;
+    for (int i = 0; i < players.size(); ++i) {
+        const auto& hand = players[i]->getHand();
+        float x, y, rotation;
+        float spacing = 40.0f; // Espaçamento entre as cartas
+
+        for (size_t j = 0; j < hand.size(); ++j) {
+            if (i == 0) { // Baixo (Humano)
+                x = 400.0f + (j * 50.0f);
+                y = 600.0f;
+                rotation = 0.0f;
+            } 
+            else if (i == 1) { // Direita
+                x = 1100.0f;
+                y = 200.0f + (j * spacing);
+                rotation = 270.0f; // Girada para a esquerda
+            } 
+            else if (i == 2) { // Cima
+                x = 800.0f - (j * 50.0f);
+                y = 120.0f;
+                rotation = 180.0f; // De cabeça para baixo
+            } 
+            else if (i == 3) { // Esquerda
+                x = 180.0f;
+                y = 500.0f - (j * spacing);
+                rotation = 90.0f; // Girada para a direita
+            }
+
+            hand[j]->setRotation(rotation);
+            hand[j]->setPosition(x, y);
+            hand[j]->render(window);
         }
     }
 

@@ -23,7 +23,7 @@ public:
     const std::vector<std::shared_ptr<Card>>& getHand() const { return hand; }
 
     virtual std::shared_ptr<Card> playCard(int index = 0);
-    std::shared_ptr<Card> thinkAndPlay(Suit leadSuit, Suit trumpSuit);
+    std::shared_ptr<Card> thinkAndPlay(Suit leadSuit, bool isFirstToPlay);
 
     bool checkIsCPU() const { return isCPU; }
     std::string getName() const { return name; }

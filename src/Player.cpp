@@ -18,8 +18,27 @@ std::shared_ptr<Card> Player::playCard(int index) {
     return chosenCard;
 }
 
-std::shared_ptr<Card> Player::thinkAndPlay(Suit leadSuit, Suit trumpSuit) {
+std::shared_ptr<Card> Player::thinkAndPlay(Suit leadSuit, bool isFirstToPlay) {
     if (!isCPU) return nullptr;
-    // Por enquanto, apenas joga a primeira carta válida
-    return playCard(0);
+
+    int chosenIndex = 0;
+
+    if (isFirstToPlay) {
+        // Se for o primeiro a jogar, joga qualquer uma (ou a maior que tiver)
+        chosenIndex = 0; 
+    } else {
+        // Tenta encontrar uma carta que siga o naipe inicial
+        bool foundSuit = false;
+        for (int i = 0; i < hand.size(); ++i) {
+            if (hand[i]->getSuit() == leadSuit) {
+                chosenIndex = i;
+                foundSuit = true;
+                break;
+            }
+        }
+        // Se não tiver o naipe, joga a primeira carta (corta ou descarta lixo)
+        if (!foundSuit) chosenIndex = 0;
+    }
+
+    return playCard(chosenIndex);
 }
