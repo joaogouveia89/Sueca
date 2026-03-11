@@ -9,7 +9,7 @@
 // Construtor inicializando a janela no padrão SFML 3
 Game::Game() 
     : window(sf::VideoMode(windowSize), gameTitle),
-      backgroundSprite(backgroundTexture) 
+    backgroundSprite(backgroundTexture)
 {
 #ifdef __APPLE__
     char path[1024];
@@ -27,34 +27,51 @@ Game::Game()
     }
 #endif
 
-    // Agora o caminho "data/..." funcionará independente de como você abrir o app
-    if (!backgroundTexture.loadFromFile("data/bg.png")) {
-        std::cerr << "Erro crítico: Nao foi possivel carregar data/bg.png" << std::endl;
+    if (backgroundTexture.loadFromFile("data/bg.png")) {
+        backgroundSprite.setTexture(backgroundTexture, true); // O 'true' reseta o retângulo de textura
+        
+        // Pegue o tamanho da textura e da janela
+        sf::Vector2u textureSize = backgroundTexture.getSize();
+        sf::Vector2u windowSize = window.getSize();
+
+        // Calcule a escala necessária para preencher a janela (1280x720)
+        float scaleX = (float)windowSize.x / textureSize.x;
+        float scaleY = (float)windowSize.y / textureSize.y;
+        
+        backgroundSprite.setScale({scaleX, scaleY});
+        backgroundSprite.setPosition({0, 0}); // Garanta que comece no topo esquerdo
+        
+        std::cout << "Background carregado e escalonado para: " << scaleX << "x" << scaleY << std::endl;
+    }else {
+        // 3. AGORA vincule o Sprite à textura carregada
+        backgroundSprite.setTexture(backgroundTexture);
+        
+        // Garanta que o Sprite cubra a tela toda (1280x720)
+        // Se a imagem for maior/menor, o SFML pode não mostrar se a escala estiver errada
+        backgroundSprite.setScale({1.0f, 1.0f}); 
+        std::cout << "Sucesso: bg.png carregado e vinculado!" << std::endl;
     }
     
     deck = std::make_unique<CardDeck>();
     deck->shuffle();
     
-    // Criar os 4 jogadores
-    players.push_back(std::make_unique<Player>(0, "Voce", false)); // Humano
+    // 1. Criar os jogadores apenas uma vez
+    players.push_back(std::make_unique<Player>(0, "Voce", false));
     players.push_back(std::make_unique<Player>(1, "CPU 1", true));
     players.push_back(std::make_unique<Player>(2, "CPU 2", true));
     players.push_back(std::make_unique<Player>(3, "CPU 3", true));
 
-    // Distribuir 10 cartas para cada
-    sf::Vector2f deckPos{640.0f, 360.0f}; // Centro da mesa
+    sf::Vector2f deckPos{640.0f, 360.0f};
 
-    // Inicializa os jogadores e distribui cartas
+    // 2. Apenas distribuir as cartas para os jogadores que já existem
     for (int i = 0; i < 4; i++) {
-        players.push_back(std::make_unique<Player>(i, "Nome", i != 0));
         auto dealtCards = deck->drawCards(10);
         
         for (auto& card : dealtCards) {
-            // TODAS as cartas nascem no centro da mesa
             card->setPosition(deckPos, true); 
             card->setRotation(0.0f, true);
         }
-        players[i]->setCards(dealtCards);
+        players[i]->setCards(dealtCards); // Usa o player[i] que já foi criado acima
     }
 }
 
@@ -137,7 +154,7 @@ void Game::update(float deltaTime) {
 }
 
 void Game::render() {
-    window.clear();
+    window.clear(sf::Color::Black);
     window.draw(backgroundSprite);
 
     for (int i = 0; i < players.size(); ++i) {
