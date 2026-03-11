@@ -1,41 +1,30 @@
-#if !defined(CARD_HPP)
+#ifndef CARD_HPP
 #define CARD_HPP
-#include <memory>
+
+#include <SFML/Graphics.hpp>
 #include <string>
-#include <sstream>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
-#include "CardTexture.hpp"
 
-enum class Suit{
-    SPADES, HEARTS, DIAMONDS, CLUBS
-};
+enum class Suit { SPADES, HEARTS, DIAMONDS, CLUBS };
 
-class Card
-{
+class Card {
 private:
     Suit suit;
     char symbol;
     int points;
-    
-    std::unique_ptr<CardTexture> texture;
-    int x;
-    int y;
-    const std::string IMAGE_FILE_PATH = "../data/";
-    const std::string IMAGE_FILE_EXTENSION = ".png";
-
-    void createCardTexture(SDL_Renderer* gRenderer);
-    std::string getFileIdentifier();
+    sf::Sprite sprite; // No SFML 3, isso será inicializado no construtor da classe
 
 public:
-    Card(SDL_Renderer* gRenderer, Suit suit, char symbol);
-    ~Card();
-
-    void render();
-
-    Suit GetSuit() const{ return suit; }
-    char GetSymbol() const{ return symbol; }
+    // O construtor agora passa a textura adiante para o sprite
+    Card(Suit s, char sym, const sf::Texture& tex);
+    
+    void setPosition(float x, float y);
+    void render(sf::RenderWindow& window);
+    
+    Suit getSuit() const { return suit; }
+    char getSymbol() const { return symbol; }
+    int getPoints() const { return points; }
+    
+    static int calculatePoints(char sym);
 };
 
-
-#endif // CARD_HPP
+#endif

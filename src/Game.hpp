@@ -1,53 +1,35 @@
-//
-//  Game.hpp
-//  Santa Claus Run
-//
-//  Created by Joao Gouveia on 05/05/2023.
-//
+#ifndef GAME_HPP
+#define GAME_HPP
 
-#ifndef Game_hpp
-#define Game_hpp
-
-#include <stdio.h>
-#include <iostream>
-#include <string>
+#include <SFML/Graphics.hpp>
 #include <memory>
-#include <algorithm>
-#include <SDL.h>
-#include <SDL2/SDL_image.h>
+#include <vector>
+#include <string>
 #include "CardDeck.hpp"
 #include "Player.hpp"
 
-class Game{
+class Game {
 public:
-    bool init();
-    void close();
-    void gameLoop();
-    
-private:
-    //Game constants
-    const int SCREEN_WIDTH = 1280;
-    const int SCREEN_HEIGHT = 720;
+    Game();
+    ~Game();
 
-    const std::string GAME_TITLE = "Sueca";
-    const char* BACKGROUND_PATH = "../data/bg.png";
-    
-    bool success { true };
-    bool quit { false };
+    void run(); // Vamos usar 'run' em vez de 'gameLoop' para seguir o padrão moderno
+
+private:
+    void processEvents();
+    void update();
+    void render();
+
+    // SFML 3 usa Vector2u para tamanhos de janela
+    const sf::Vector2u windowSize{1280, 720};
+    const std::string gameTitle = "Sueca SFML 3";
+
+    sf::RenderWindow window;
+    sf::Texture backgroundTexture;
+    sf::Sprite backgroundSprite;
 
     std::unique_ptr<CardDeck> deck;
-    std::unique_ptr<Player> p0;
-    std::unique_ptr<Player> p1;
-    std::unique_ptr<Player> p2;
-    std::unique_ptr<Player> p3;
-    
-    SDL_Event e;
-    SDL_Window* gWindow { NULL };
-    SDL_Renderer* gRenderer { NULL };
-    
-    SDL_Texture* background { NULL };
-    
-    std::unique_ptr<CardTexture> clubs2;
+    std::vector<std::unique_ptr<Player>> players;
 };
 
-#endif /* Game_hpp */
+#endif

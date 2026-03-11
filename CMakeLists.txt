@@ -1,27 +1,41 @@
-cmake_minimum_required(VERSION 3.11.3)
+cmake_minimum_required(VERSION 3.11)
+project(Sueca_Game CXX)
 
-# Project name and language
-project(OSM_A_star_search CXX)
-
-# Set C++ standard and flags
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Find SDL2 package
-find_package(SDL2 REQUIRED)
+# Garante que o CMake olhe no local correto do Homebrew
+list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew" "/usr/local")
 
-# Include SDL2 headers
-include_directories(${SDL2_INCLUDE_DIRS})
+# No SFML 3, use nomes com Capitalize: Graphics, Window, System
+find_package(SFML 3 COMPONENTS Graphics Window System REQUIRED)
 
-# Manually specify SDL2_image paths
-set(SDL2_IMAGE_INCLUDE_DIRS "/usr/include/SDL2")
-set(SDL2_IMAGE_LIBRARIES "-lSDL2_image")
-
-# Find all source files
+# Pega todos os fontes na pasta src
 file(GLOB project_SRCS src/*.cpp)
 
-# Add project executable
 add_executable(sueca ${project_SRCS})
 
-# Link SDL2 and SDL2_image libraries
-target_link_libraries(sueca ${SDL2_LIBRARIES} ${SDL2_IMAGE_LIBRARIES})
+# No SFML 3, o nome dos alvos para linkar também mudou para o padrão Namespace
+target_link_libraries(sueca SFML::Graphics SFML::Window SFML::System)
+
+if(APPLE)
+    set_target_properties(sueca PROPERTIES MACOSX_BUNDLE TRUE)
+endif()
+
+# ... (mantenha o restante do arquivo como está)
+
+# Comando para copiar a pasta data para o diretório de build
+add_custom_command(TARGET sueca POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/data
+    $<TARGET_FILE_DIR:sueca>/data
+)
+
+# Se estiver no macOS, precisamos garantir que a pasta data vá para dentro do Bundle também
+if(APPLE)
+    add_custom_command(TARGET sueca POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/data
+        $<TARGET_BUNDLE_CONTENT_DIR:sueca>/Resources/data
+    )
+endif()

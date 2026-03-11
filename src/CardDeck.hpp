@@ -1,31 +1,20 @@
-#if !defined(CARD_DECK_HPP)
-#define CARD_DECK_HPP
-
-#include <vector>
+// CardDeck.hpp
+#include <map>
 #include <memory>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
+#include <vector>
 #include <algorithm>
 #include <random>
 #include "Card.hpp"
 
-class CardDeck
-{
+class CardDeck {
 private:
     std::vector<std::shared_ptr<Card>> deck;
-    char symbolsList[10];
+    std::map<std::string, sf::Texture> textureCache;
+    
+    std::string getFileName(Suit s, char sym);
 
 public:
-    CardDeck(SDL_Renderer* gRenderer);
-
-    void Shuffle();
-
-    std::vector<std::shared_ptr<Card>> Get10Cards();
-
-    std::shared_ptr<Card> GetCard(int idx) const{ return deck.at(idx); }
-
-    ~CardDeck();
+    CardDeck();
+    void shuffle();
+    std::vector<std::shared_ptr<Card>> drawCards(int count);
 };
-
-
-#endif // CARD_DECK_HPP

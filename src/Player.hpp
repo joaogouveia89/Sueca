@@ -1,23 +1,32 @@
-#if !defined(PLAYER_HPP)
+#ifndef PLAYER_HPP
 #define PLAYER_HPP
 
-#include<string>
-#include<vector>
-#include<memory>
+#include <vector>
+#include <memory>
+#include <string>
 #include "Card.hpp"
 
-class Player
-{
-private:
+class Player {
+protected:
     int id;
     std::string name;
-    std::vector<std::shared_ptr<Card>> earnedCards;
-    std::vector<std::shared_ptr<Card>> playableCards;
-public:
-    Player(int _id, std::string _name);
-    ~Player();
+    std::vector<std::shared_ptr<Card>> hand;
+    bool isCPU;
 
-    void SetCards(std::vector<std::shared_ptr<Card>> cards);
+public:
+    Player(int _id, std::string _name, bool _isCPU = true);
+    virtual ~Player();
+
+    void setCards(std::vector<std::shared_ptr<Card>> cards);
+    
+    // ADICIONE ESTA LINHA ABAIXO:
+    const std::vector<std::shared_ptr<Card>>& getHand() const { return hand; }
+
+    virtual std::shared_ptr<Card> playCard(int index = 0);
+    std::shared_ptr<Card> thinkAndPlay(Suit leadSuit, Suit trumpSuit);
+
+    bool checkIsCPU() const { return isCPU; }
+    std::string getName() const { return name; }
 };
 
-#endif // PLAYER_HPP
+#endif

@@ -1,16 +1,12 @@
-
 #include <iostream>
 #include "Game.hpp"
 
-int main( int argc, char* args[] )
-{
+int main(int argc, char* args[]) {
+    // O construtor já inicializa a janela e carrega as texturas
     Game game;
-    //Start up the game
-    if( !game.init() )
-    {
-        printf( "Failed to initialize!\n" );
-    }else{
-        game.gameLoop();
-    }
+
+    // O método 'run' contém o loop principal (processEvents, update, render)
+    game.run();
+
     return 0;
 }

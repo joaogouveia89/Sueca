@@ -1,30 +1,57 @@
 #include "CardDeck.hpp"
+#include <iostream>
 
-CardDeck::CardDeck(SDL_Renderer* gRenderer): 
-    symbolsList{'2', '3', '4', '5', '6', '7', 'J', 'Q', 'K', 'A'}
-{
-    // creating cards
+CardDeck::CardDeck() {
+    char symbols[] = {'2', '3', '4', '5', '6', '7', 'J', 'Q', 'K', 'A'};
+    Suit suits[] = {Suit::SPADES, Suit::HEARTS, Suit::DIAMONDS, Suit::CLUBS};
 
-    for(auto currentSymbol : symbolsList){
-        deck.push_back(std::make_shared<Card>(gRenderer, Suit::SPADES, currentSymbol));
-        deck.push_back(std::make_shared<Card>(gRenderer, Suit::CLUBS, currentSymbol));
-        deck.push_back(std::make_shared<Card>(gRenderer, Suit::HEARTS, currentSymbol));
-        deck.push_back(std::make_shared<Card>(gRenderer, Suit::DIAMONDS, currentSymbol));
+    for (auto s : suits) {
+        for (auto sym : symbols) {
+            std::string name = getFileName(s, sym);
+            // No SFML 3, loadFromFile retorna um bool que não deve ser ignorado
+            if (textureCache.find(name) == textureCache.end()) {
+                // REMOVA o "../" do início do caminho
+                if (!textureCache[name].loadFromFile("data/" + name + ".png")) {
+                    std::cerr << "Falha ao carregar: " << name << std::endl;
+                }
+            }
+            deck.push_back(std::make_shared<Card>(s, sym, textureCache[name]));
+        }
     }
-    std::cout << "Deck created" << std::endl;
 }
 
-CardDeck::~CardDeck(){}
+std::string CardDeck::getFileName(Suit s, char sym) {
+    std::string n;
+    if(sym == 'J') n = "jack";
+    else if(sym == 'Q') n = "queen";
+    else if(sym == 'K') n = "king";
+    else if(sym == 'A') n = "ace";
+    else n = std::string(1, sym);
 
-void CardDeck::Shuffle() {
-    auto rd = std::random_device {}; 
-    auto rng = std::default_random_engine { rd() };
-    std::shuffle(std::begin(deck), std::end(deck), rng);
+    n += "_of_";
+    if(s == Suit::SPADES) n += "spades";
+    else if(s == Suit::HEARTS) n += "hearts";
+    else if(s == Suit::DIAMONDS) n += "diamonds";
+    else n += "clubs";
+    return n;
 }
 
-std::vector<std::shared_ptr<Card>> CardDeck::Get10Cards(){
-    std::vector<std::shared_ptr<Card>> subDeck = {deck.begin(), deck.begin() + 10};
-    // Remove the first 10 cards from the main deck
-    deck.erase(deck.begin(), deck.begin() + 10);
-    return std::move(subDeck);
+void CardDeck::shuffle() {
+    std::shuffle(deck.begin(), deck.end(), std::default_random_engine(std::random_device{}()));
+}
+
+// Implementação que faltava para o Linker encontrar
+std::vector<std::shared_ptr<Card>> CardDeck::drawCards(int count) {
+    std::vector<std::shared_ptr<Card>> hand;
+    
+    // Garante que não tentamos tirar mais cartas do que existem
+    int actualCount = std::min(count, (int)deck.size());
+
+    for (int i = 0; i < actualCount; ++i) {
+        // Pegamos do final do vetor (back) pois é O(1), mais eficiente
+        hand.push_back(deck.back());
+        deck.pop_back();
+    }
+    
+    return hand;
 }
