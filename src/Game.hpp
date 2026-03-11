@@ -19,12 +19,19 @@ private:
 
     enum class GameState {
         SHOWING_TRUMP,
-        PLAYING
+        PLAYING,
+        RESOLVING_TRICK
     };
 
     GameState currentState;
     float stateTimer;
     std::shared_ptr<Card> trumpCardRef;
+    float cpuTimer; // CPU thinking time
+
+    int currentPlayer;
+    int cardsPlayedInTrick;
+
+    sf::Vector2f getTableTargetPosition(int playerId) const;
 
     // Constants
     const sf::Vector2u WINDOW_SIZE{1280, 720};
@@ -68,6 +75,12 @@ private:
     // Animation helpers
     void updatePlayerCardPositions(float deltaTime);
     void updateTableCardPositions(float deltaTime);
+
+    // Turn logic helpers
+    void advanceTurn();
+    void playCpuTurn();
+    void updateResolvingTrickState(float deltaTime);
+    void resolveTrick();
 };
 
 #endif

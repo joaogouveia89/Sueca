@@ -130,12 +130,11 @@ void Game::processEvents() {
 }
 
 void Game::handleMouseClick(sf::Vector2f mousePos) {
-    // Protect input: Do not allow playing cards while dealing or showing trump
-    if (currentState != GameState::PLAYING) return;
+    // Clicking is only allowed if we are playing AND it is the Human's turn
+    if (currentState != GameState::PLAYING || currentPlayer != 0) return;
 
     const auto& hand = players[0]->getHand();
-
-    // Reverse Z-index sweep: ensures we only click the card that is visually "on top"
+    
     for (int j = static_cast<int>(hand.size()) - 1; j >= 0; --j) {
         if (hand[j]->getBounds().contains(mousePos)) {
             playHumanCard(j);
@@ -145,24 +144,76 @@ void Game::handleMouseClick(sf::Vector2f mousePos) {
 }
 
 void Game::playHumanCard(int cardIndex) {
-    // 1. Remove the card from the Human player's hand (id 0)
     std::shared_ptr<Card> playedCard = players[0]->playCard(cardIndex);
     
     if (playedCard) {
-        // 2. Add the card to the table cards vector
+        // If it is the first card of the round, it determines the suit that should be followed (lead suit).
+        if (cardsPlayedInTrick == 0) {
+            leadSuit = playedCard->getSuit();
+        }
+
         tableCards.push_back(playedCard);
+        playedCard->setPosition(getTableTargetPosition(0));
+        playedCard->setRotation(0.0f);
         
-        // 3. Set the target position towards the center of the table
-        // (Using a slight Y offset to represent the bottom player's position)
-        sf::Vector2f tableBottomPos{640.0f, 420.0f};
-        playedCard->setPosition(tableBottomPos);
-        playedCard->setRotation(0.0f); // Ensure the card is straight
-        
-        // Note: The animation engine (updateTableCardPositions) 
-        // will make the card slide smoothly to this new target!
-        
-        // TODO: Change game state and trigger CPU 1's turn
+        cardsPlayedInTrick++;
+        advanceTurn(); // Pass the turn!§
     }
+}
+
+sf::Vector2f Game::getTableTargetPosition(int playerId) const {
+    switch (playerId) {
+        case 0: return {640.0f, 400.0f}; // Human (Further below)
+        case 1: return {690.0f, 360.0f}; // Right CPU
+        case 2: return {640.0f, 320.0f}; // CPU Top
+        case 3: return {590.0f, 360.0f}; // Left CPU
+        default: return DECK_SPAWN_POS;
+    }
+}
+
+
+void Game::playCpuTurn() {
+    bool isFirst = (cardsPlayedInTrick == 0);
+    
+    // The CPU intelligence you already had in Player.cpp
+    auto playedCard = players[currentPlayer]->thinkAndPlay(leadSuit, isFirst);
+
+    if (playedCard) {
+        playedCard->setFaceUp(true); // Turn the CPU card face up!
+        
+        if (isFirst) {
+            leadSuit = playedCard->getSuit();
+        }
+
+        tableCards.push_back(playedCard);
+        playedCard->setPosition(getTableTargetPosition(currentPlayer));
+        playedCard->setRotation(0.0f);
+        
+        cardsPlayedInTrick++;
+        advanceTurn();
+    }
+}
+
+void Game::advanceTurn() {
+    if (cardsPlayedInTrick == 4) {
+        // All 4 cards have been played! Pause for the human to see the result.
+        currentState = GameState::RESOLVING_TRICK;
+        stateTimer = 0.0f; // We reused the status timer.
+    } else {
+        // Pass to the next player (0 -> 1 -> 2 -> 3 -> 0)
+        currentPlayer = (currentPlayer + 1) % 4;
+    }
+}
+
+void Game::resolveTrick() {
+    // For now, we're just cleaning the table.
+    // In the future, we'll decide here who won the trick and hand over the points!
+    tableCards.clear();
+    cardsPlayedInTrick = 0;
+    
+    // For now, the human always starts the next round.
+    currentPlayer = 0; 
+    currentState = GameState::PLAYING;
 }
 
 void Game::updatePlayerCardPositions(float deltaTime) {
@@ -220,6 +271,21 @@ void Game::update(float deltaTime) {
         case GameState::PLAYING:
             updatePlayingState(deltaTime);
             break;
+        case GameState::RESOLVING_TRICK:
+            updateResolvingTrickState(deltaTime);
+            break;
+    }
+}
+
+void Game::updateResolvingTrickState(float deltaTime) {
+    stateTimer += deltaTime;
+    
+    updatePlayerCardPositions(deltaTime);
+    updateTableCardPositions(deltaTime);
+
+    // Wait 2 seconds with the cards on the table, then resolve the round.
+    if (stateTimer >= 2.0f) {
+        resolveTrick();
     }
 }
 
@@ -242,23 +308,30 @@ void Game::updateShowingTrumpState(float deltaTime) {
 
 void Game::transitionToPlayingState() {
     currentState = GameState::PLAYING;
-    
-    // Hide the trump card again (it belongs to CPU 3)
     trumpCardRef->setFaceUp(false); 
     
-    // Reveal ONLY the human player's cards
     for (auto& card : players[0]->getHand()) {
         card->setFaceUp(true);
     }
-    
-    // Note: The next frame will call updatePlayingState, 
-    // which automatically calculates the new targets and triggers the dealing animation!
+
+    // Initialize turns system
+    currentPlayer = 0; // The human starts the first turn
+    cardsPlayedInTrick = 0;
+    cpuTimer = 0.0f;
 }
 
 void Game::updatePlayingState(float deltaTime) {
-    // Normal game loop: calculate target coordinates and fly cards to hands
     updatePlayerCardPositions(deltaTime);
     updateTableCardPositions(deltaTime);
+
+    // If it's the CPU's turn, count the time before it plays.
+    if (currentPlayer != 0 && cardsPlayedInTrick < 4) {
+        cpuTimer += deltaTime;
+        if (cpuTimer >= 1.0f) { // 1 second of "thought"
+            cpuTimer = 0.0f;
+            playCpuTurn();
+        }
+    }
 }
 
 
