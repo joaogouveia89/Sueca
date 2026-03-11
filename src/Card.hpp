@@ -11,13 +11,19 @@ private:
     Suit suit;
     char symbol;
     int points;
-    sf::Sprite sprite; // No SFML 3, isso será inicializado no construtor da classe
+    sf::Sprite sprite;
+    
+    // Adicionamos referências para as duas texturas
+    const sf::Texture& frontTexture;
+    const sf::Texture& backTexture;
+    bool faceUp = true;
 
 public:
     // O construtor agora passa a textura adiante para o sprite
-    Card(Suit s, char sym, const sf::Texture& tex);
+    Card(Suit s, char sym, const sf::Texture& front, const sf::Texture& back);
     
     void setPosition(float x, float y);
+    void setFaceUp(bool up);
     void render(sf::RenderWindow& window);
     
     Suit getSuit() const { return suit; }

@@ -42,8 +42,16 @@ Game::Game()
     players.push_back(std::make_unique<Player>(3, "CPU 3", true));
 
     // Distribuir 10 cartas para cada
-    for (auto& player : players) {
-        player->setCards(deck->drawCards(10));
+    for (int i = 0; i < players.size(); ++i) {
+        // Usamos players[i] para acessar o jogador atual do loop
+        players[i]->setCards(deck->drawCards(10));
+        
+        // Se não for o Player 0 (Humano), vira as cartas para baixo
+        if (i != 0) {
+            for (auto& card : players[i]->getHand()) {
+                card->setFaceUp(false);
+            }
+        }
     }
 }
 

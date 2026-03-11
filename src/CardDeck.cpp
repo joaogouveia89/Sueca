@@ -6,6 +6,12 @@ CardDeck::CardDeck() {
     Suit suits[] = {Suit::SPADES, Suit::HEARTS, Suit::DIAMONDS, Suit::CLUBS};
 
     for (auto s : suits) {
+
+        if (!textureCache["back"].loadFromFile("data/back.png")) {
+            std::cerr << "Erro ao carregar back.png" << std::endl;
+        }
+
+
         for (auto sym : symbols) {
             std::string name = getFileName(s, sym);
             // No SFML 3, loadFromFile retorna um bool que não deve ser ignorado
@@ -15,7 +21,7 @@ CardDeck::CardDeck() {
                     std::cerr << "Falha ao carregar: " << name << std::endl;
                 }
             }
-            deck.push_back(std::make_shared<Card>(s, sym, textureCache[name]));
+            deck.push_back(std::make_shared<Card>(s, sym, textureCache[name], textureCache["back"]));
         }
     }
 }
