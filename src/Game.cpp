@@ -13,10 +13,13 @@
 // ----------------------------------------------------------------------------
 Game::Game() 
     : window(sf::VideoMode(WINDOW_SIZE), GAME_TITLE),
-      backgroundSprite(backgroundTexture)
+      backgroundSprite(backgroundTexture),
+      scoreText(font), // FIX SFML 3: Agora exige a fonte na inicialização!
+      team0Score(0),
+      team1Score(0)
 {
     setupMacOSPath();
-    loadBackground();
+    loadAssets();
     initializePlayers();
     
     deck = std::make_unique<CardDeck>();
@@ -46,8 +49,8 @@ void Game::setupMacOSPath() {
 #endif
 }
 
-// Loads and scales the background texture to fit the window perfectly
-void Game::loadBackground() {
+// Loads background texture and UI fonts
+void Game::loadAssets() {
     if (backgroundTexture.loadFromFile(BG_PATH)) {
         backgroundSprite.setTexture(backgroundTexture, true); 
         
@@ -60,11 +63,21 @@ void Game::loadBackground() {
         backgroundSprite.setScale({scaleX, scaleY});
         backgroundSprite.setPosition({0, 0}); 
         
-        std::cout << "Background loaded successfully. Scale: " << scaleX << "x" << scaleY << std::endl;
+        std::cout << "Background loaded successfully." << std::endl;
     } else {
-        backgroundSprite.setTexture(backgroundTexture);
-        backgroundSprite.setScale({1.0f, 1.0f}); 
         std::cerr << "Failed to load background image: " << BG_PATH << std::endl;
+    }
+
+    if (font.openFromFile(FONT_PATH)) {
+        scoreText.setCharacterSize(24);
+        scoreText.setFillColor(sf::Color::White);
+        scoreText.setOutlineColor(sf::Color::Black);
+        scoreText.setOutlineThickness(2.0f);
+        scoreText.setPosition({980.0f, 20.0f});
+        updateScoreText();
+        std::cout << "Font loaded successfully." << std::endl;
+    } else {
+        std::cerr << "Failed to load font: " << FONT_PATH << ". Make sure it exists!" << std::endl;
     }
 }
 
@@ -94,7 +107,6 @@ void Game::dealCards() {
     players[0]->sortHand();
 
     // Define the trump card as the last card dealt to CPU 3 (Left player).
-    // Because CPU 3 is rendered last, this card will appear visually on top of the deck!
     trumpCardRef = players[3]->getHand().back();
     trumpCardRef->setFaceUp(true); 
     trumpSuit = trumpCardRef->getSuit();
@@ -162,15 +174,24 @@ void Game::render() {
     window.clear(sf::Color::Black);
     window.draw(backgroundSprite);
 
+    // Draw the piles first so they stay in the background
+    for (const auto& card : team0Pile) card->render(window);
+    for (const auto& card : team1Pile) card->render(window);
+
+    // Draw players hands
     for (const auto& player : players) {
         for (const auto& card : player->getHand()) {
             card->render(window);
         }
     }
 
+    // Draw cards currently in the middle of the table
     for (const auto& card : tableCards) {
         card->render(window);
     }
+
+    // Draw UI Elements
+    window.draw(scoreText);
 
     window.display();
 }
@@ -193,6 +214,7 @@ void Game::updateShowingTrumpState(float deltaTime) {
         }
     }
     updateTableCardPositions(deltaTime);
+    updatePileCardPositions(deltaTime);
 }
 
 // Prepares the game data to start receiving player inputs
@@ -214,6 +236,7 @@ void Game::transitionToPlayingState() {
 void Game::updatePlayingState(float deltaTime) {
     updatePlayerCardPositions(deltaTime);
     updateTableCardPositions(deltaTime);
+    updatePileCardPositions(deltaTime);
 
     if (currentPlayer != 0 && cardsPlayedInTrick < 4) {
         cpuTimer += deltaTime;
@@ -230,6 +253,7 @@ void Game::updateResolvingTrickState(float deltaTime) {
     
     updatePlayerCardPositions(deltaTime);
     updateTableCardPositions(deltaTime);
+    updatePileCardPositions(deltaTime);
 
     if (stateTimer >= 2.0f) {
         resolveTrick();
@@ -280,10 +304,10 @@ void Game::playHumanCard(int cardIndex) {
     }
 }
 
+// Asks the AI for a decision and moves the chosen CPU card to the table
 void Game::playCpuTurn() {
     bool isFirst = (cardsPlayedInTrick == 0);
     
-    // --- AI INTEGRATION: Build the context for the CPU to think ---
     GameContext ctx = {
         leadSuit,
         trumpSuit,
@@ -291,7 +315,6 @@ void Game::playCpuTurn() {
         tableCards
     };
 
-    // Pass the context to the CPU and let SuecaAI do the magic
     auto playedCard = players[currentPlayer]->thinkAndPlay(ctx);
 
     if (playedCard) {
@@ -324,8 +347,42 @@ void Game::advanceTurn() {
 // Evaluates the trick, declares the winner, clears the table, and resets for next trick
 void Game::resolveTrick() {
     int trickWinner = determineTrickWinner();
+    int winningTeam = trickWinner % 2; // Team 0 (Players 0 & 2), Team 1 (Players 1 & 3)
+    
+    int trickPoints = 0;
 
-    std::cout << "Player " << players[trickWinner]->getName() << " won the trick!" << std::endl;
+    // Calculate points and move cards to the winner's team pile
+    for (const auto& card : tableCards) {
+        trickPoints += card->getPoints();
+        card->setFaceUp(false); // Hide card for the pile
+        card->setRotation(0.0f);
+        
+        if (winningTeam == 0) {
+            // Add a tiny visual offset so the pile looks thick
+            sf::Vector2f target = TEAM0_PILE_POS;
+            target.x += team0Pile.size() * 0.2f;
+            target.y -= team0Pile.size() * 0.2f;
+            
+            card->setPosition(target);
+            team0Pile.push_back(card);
+        } else {
+            sf::Vector2f target = TEAM1_PILE_POS;
+            target.x += team1Pile.size() * 0.2f;
+            target.y -= team1Pile.size() * 0.2f;
+            
+            card->setPosition(target);
+            team1Pile.push_back(card);
+        }
+    }
+
+    if (winningTeam == 0) {
+        team0Score += trickPoints;
+    } else {
+        team1Score += trickPoints;
+    }
+
+    std::cout << "Player " << players[trickWinner]->getName() << " won the trick! (+" << trickPoints << " pts)" << std::endl;
+    updateScoreText();
 
     tableCards.clear();
     cardsPlayedInTrick = 0;
@@ -393,6 +450,11 @@ void Game::notifyPlayersCardPlayed(std::shared_ptr<Card> card) {
     }
 }
 
+// Updates the scoreboard string
+void Game::updateScoreText() {
+    scoreText.setString("Team Us: " + std::to_string(team0Score) + "\nTeam CPU: " + std::to_string(team1Score));
+}
+
 // ----------------------------------------------------------------------------
 // Animation & View Mapping
 // ----------------------------------------------------------------------------
@@ -442,6 +504,12 @@ void Game::updateTableCardPositions(float deltaTime) {
     for (auto& card : tableCards) {
         card->update(deltaTime);
     }
+}
+
+// Triggers the animation cycle for cards sitting in the won piles
+void Game::updatePileCardPositions(float deltaTime) {
+    for (auto& card : team0Pile) card->update(deltaTime);
+    for (auto& card : team1Pile) card->update(deltaTime);
 }
 
 // Maps player IDs to screen coordinates forming a cross pattern in the center

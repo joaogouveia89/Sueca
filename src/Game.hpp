@@ -22,7 +22,12 @@ private:
     const sf::Vector2u WINDOW_SIZE{1280, 720};
     const std::string GAME_TITLE = "Sueca";
     const std::string BG_PATH = "data/bg.png";
+    const std::string FONT_PATH = "data/arial.ttf";
     const sf::Vector2f DECK_SPAWN_POS{640.0f, 360.0f};
+    
+    // Positions for the won cards piles
+    const sf::Vector2f TEAM0_PILE_POS{150.0f, 600.0f};  // Bottom Left (Human/CPU2 Team)
+    const sf::Vector2f TEAM1_PILE_POS{1130.0f, 120.0f}; // Top Right (CPU1/CPU3 Team)
     
     // --- Enums & Structs ---
     enum class GameState {
@@ -35,9 +40,16 @@ private:
     sf::RenderWindow window;
     sf::Texture backgroundTexture;
     sf::Sprite backgroundSprite;
+    sf::Font font;
+    sf::Text scoreText;
+
     std::unique_ptr<CardDeck> deck;
     std::vector<std::unique_ptr<Player>> players;
     std::vector<std::shared_ptr<Card>> tableCards;
+    
+    // Won card piles
+    std::vector<std::shared_ptr<Card>> team0Pile;
+    std::vector<std::shared_ptr<Card>> team1Pile;
 
     // --- Game State Variables ---
     GameState currentState;
@@ -50,9 +62,13 @@ private:
     int currentPlayer;        // The player whose turn it is right now
     int cardsPlayedInTrick;   // Counter for cards on the table (0 to 4)
 
+    // Scores
+    int team0Score;           // Score for Player 0 and Player 2
+    int team1Score;           // Score for Player 1 and Player 3
+
     // --- Initialization Helpers ---
     void setupMacOSPath();
-    void loadBackground();
+    void loadAssets();
     void initializePlayers();
     void dealCards();
 
@@ -78,10 +94,12 @@ private:
     bool isValidHumanPlay(const std::shared_ptr<Card>& playedCard) const;
     int determineTrickWinner() const;
     void notifyPlayersCardPlayed(std::shared_ptr<Card> card);
+    void updateScoreText();
 
     // --- Animation & View ---
     void updatePlayerCardPositions(float deltaTime);
     void updateTableCardPositions(float deltaTime);
+    void updatePileCardPositions(float deltaTime);
     sf::Vector2f getTableTargetPosition(int playerId) const;
 };
 
