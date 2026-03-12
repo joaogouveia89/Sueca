@@ -355,9 +355,10 @@ void Game::resolveTrick() {
     for (const auto& card : tableCards) {
         trickPoints += card->getPoints();
         card->setFaceUp(false); // Hide card for the pile
-        card->setRotation(0.0f);
         
         if (winningTeam == 0) {
+            card->setRotation(0.0f); // Vertical for Team 0 (Human)
+            
             // Add a tiny visual offset so the pile looks thick
             sf::Vector2f target = TEAM0_PILE_POS;
             target.x += team0Pile.size() * 0.2f;
@@ -366,6 +367,9 @@ void Game::resolveTrick() {
             card->setPosition(target);
             team0Pile.push_back(card);
         } else {
+            card->setRotation(90.0f); // Horizontal for Team 1 (CPU)
+            
+            // Apply offset for the 3D pile effect
             sf::Vector2f target = TEAM1_PILE_POS;
             target.x += team1Pile.size() * 0.2f;
             target.y -= team1Pile.size() * 0.2f;

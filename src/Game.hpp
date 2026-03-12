@@ -26,8 +26,8 @@ private:
     const sf::Vector2f DECK_SPAWN_POS{640.0f, 360.0f};
     
     // Positions for the won cards piles
-    const sf::Vector2f TEAM0_PILE_POS{150.0f, 600.0f};  // Bottom Left (Human/CPU2 Team)
-    const sf::Vector2f TEAM1_PILE_POS{1130.0f, 120.0f}; // Top Right (CPU1/CPU3 Team)
+    const sf::Vector2f TEAM0_PILE_POS{920.0f, 620.0f};  // Bottom Right (Human/CPU2 Team)
+    const sf::Vector2f TEAM1_PILE_POS{200.0f, 620.0f}; // Top Right (CPU1/CPU3 Team)
     
     // --- Enums & Structs ---
     enum class GameState {
