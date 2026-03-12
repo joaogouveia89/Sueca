@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <deque>
+#include <algorithm>
 #include "Card.hpp"
 
 class Player {

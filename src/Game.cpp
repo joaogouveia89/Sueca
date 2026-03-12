@@ -130,13 +130,33 @@ void Game::processEvents() {
 }
 
 void Game::handleMouseClick(sf::Vector2f mousePos) {
-    // Clicking is only allowed if we are playing AND it is the Human's turn
+    // Protect input: Do not allow playing cards while dealing, showing trump, or CPU turn
     if (currentState != GameState::PLAYING || currentPlayer != 0) return;
 
     const auto& hand = players[0]->getHand();
-    
+
+    // Reverse Z-index sweep: ensures we only click the card that is visually "on top"
     for (int j = static_cast<int>(hand.size()) - 1; j >= 0; --j) {
         if (hand[j]->getBounds().contains(mousePos)) {
+            
+            // --- SUECA VALIDATION: FOLLOW SUIT RULE ---
+            // If we are not the first to play in the trick, we must follow the lead suit
+            if (cardsPlayedInTrick > 0) {
+                Suit clickedSuit = hand[j]->getSuit();
+                
+                if (clickedSuit != leadSuit) {
+                    // Check if the player has the lead suit in any other card in their hand
+                    bool hasLeadSuit = std::any_of(hand.begin(), hand.end(), 
+                        [this](const std::shared_ptr<Card>& c) { return c->getSuit() == leadSuit; });
+                    
+                    if (hasLeadSuit) {
+                        std::cout << "Invalid move! You must follow the lead suit." << std::endl;
+                        break; // Cancel the click and do not play the card
+                    }
+                }
+            }
+            // ----------------------------------------------
+
             playHumanCard(j);
             break; 
         }
