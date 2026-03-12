@@ -206,13 +206,50 @@ void Game::advanceTurn() {
 }
 
 void Game::resolveTrick() {
-    // For now, we're just cleaning the table.
-    // In the future, we'll decide here who won the trick and hand over the points!
+    // 1. A primeira carta jogada (índice 0) é a vencedora temporária
+    int winningCardIndex = 0;
+
+    // 2. Compara com as outras 3 cartas da mesa
+    for (int i = 1; i < 4; ++i) {
+        auto currentWinningCard = tableCards[winningCardIndex];
+        auto challengingCard = tableCards[i];
+
+        bool currentIsTrump = (currentWinningCard->getSuit() == trumpSuit);
+        bool challengerIsTrump = (challengingCard->getSuit() == trumpSuit);
+
+        if (challengerIsTrump && !currentIsTrump) {
+            // Regra 1: Trunfo sempre ganha de Não-Trunfo
+            winningCardIndex = i;
+        } 
+        else if (challengerIsTrump && currentIsTrump) {
+            // Regra 2: Dois Trunfos na mesa, ganha o mais forte
+            if (Card::getSuecaPower(challengingCard->getSymbol()) > Card::getSuecaPower(currentWinningCard->getSymbol())) {
+                winningCardIndex = i;
+            }
+        } 
+        else if (!challengerIsTrump && !currentIsTrump) {
+            // Regra 3: Nenhum é trunfo. A carta DEVE ser do naipe puxado para ter chance.
+            if (challengingCard->getSuit() == leadSuit) {
+                if (Card::getSuecaPower(challengingCard->getSymbol()) > Card::getSuecaPower(currentWinningCard->getSymbol())) {
+                    winningCardIndex = i;
+                }
+            }
+        }
+    }
+
+    // 3. Descobre de quem é a carta vencedora
+    // Como a ordem na mesa segue a ordem dos jogadores a partir do firstPlayer, fazemos essa matemática circular:
+    int trickWinner = (firstPlayer + winningCardIndex) % 4;
+
+    std::cout << "O jogador " << players[trickWinner]->getName() << " ganhou a vaza!" << std::endl;
+
+    // 4. Limpa a mesa para a próxima rodada
     tableCards.clear();
     cardsPlayedInTrick = 0;
     
-    // For now, the human always starts the next round.
-    currentPlayer = 0; 
+    // 5. O vencedor da rodada atual é quem começa puxando a próxima!
+    firstPlayer = trickWinner; 
+    currentPlayer = trickWinner; 
     currentState = GameState::PLAYING;
 }
 
@@ -315,6 +352,7 @@ void Game::transitionToPlayingState() {
     }
 
     // Initialize turns system
+    firstPlayer = 0; // Remember who drew the first card of the round.
     currentPlayer = 0; // The human starts the first turn
     cardsPlayedInTrick = 0;
     cpuTimer = 0.0f;
