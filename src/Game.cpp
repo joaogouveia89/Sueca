@@ -280,12 +280,19 @@ void Game::playHumanCard(int cardIndex) {
     }
 }
 
-// Asks the AI for a decision and moves the chosen CPU card to the table
 void Game::playCpuTurn() {
     bool isFirst = (cardsPlayedInTrick == 0);
     
-    // TEMPORARY: using basic logic until SuecaAI is implemented
-    auto playedCard = players[currentPlayer]->thinkAndPlay(leadSuit, isFirst);
+    // --- AI INTEGRATION: Build the context for the CPU to think ---
+    GameContext ctx = {
+        leadSuit,
+        trumpSuit,
+        isFirst,
+        tableCards
+    };
+
+    // Pass the context to the CPU and let SuecaAI do the magic
+    auto playedCard = players[currentPlayer]->thinkAndPlay(ctx);
 
     if (playedCard) {
         playedCard->setFaceUp(true); 

@@ -5,14 +5,7 @@
 #include <memory>
 #include <deque>
 #include "Card.hpp"
-
-// Moved from Game.hpp to avoid Circular Dependencies
-struct GameContext {
-    Suit leadSuit;
-    Suit trumpSuit;
-    bool isFirstToPlay;
-    const std::vector<std::shared_ptr<Card>>& tableCards;
-};
+#include "GameContext.hpp"
 
 class SuecaAI {
 public:

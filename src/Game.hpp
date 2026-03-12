@@ -7,14 +7,7 @@
 #include <string>
 #include "CardDeck.hpp"
 #include "Player.hpp"
-
-// Context passed to the AI for decision making
-struct GameContext {
-    Suit leadSuit;
-    Suit trumpSuit;
-    bool isFirstToPlay;
-    const std::vector<std::shared_ptr<Card>>& tableCards;
-};
+#include "GameContext.hpp"
 
 class Game {
 public:
