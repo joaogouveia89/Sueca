@@ -5,7 +5,7 @@
 #include <memory>
 #include <deque>
 #include "Card.hpp"
-#include "GameContext.hpp"
+#include "../core/GameContext.hpp"
 
 class SuecaAI {
 public:

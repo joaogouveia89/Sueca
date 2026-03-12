@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <memory>
-#include "Card.hpp"
+#include "../gameplay/Card.hpp"
 
 // A neutral DTO (Data Transfer Object) that represents the current table state
 struct GameContext {

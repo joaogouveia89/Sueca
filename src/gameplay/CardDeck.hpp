@@ -14,7 +14,7 @@ private:
     std::map<std::string, sf::Texture> textureCache;
     
     // Constants for asset paths
-    const std::string ASSETS_PATH = "data/";
+    const std::string ASSETS_PATH = "assets/";
     const std::string CARD_BACK_FILE = "back.png";
     const std::string FILE_EXTENSION = ".png";
 

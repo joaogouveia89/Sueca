@@ -11,9 +11,15 @@ list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew" "/usr/local")
 find_package(SFML 3 COMPONENTS Graphics Window System REQUIRED)
 
 # Pega todos os fontes na pasta src
-file(GLOB project_SRCS src/*.cpp)
+file(GLOB_RECURSE project_SRCS "src/*.cpp")
 
 add_executable(sueca ${project_SRCS})
+
+target_include_directories(sueca PRIVATE 
+    src/core
+    src/gameplay
+    src/ui
+)
 
 # No SFML 3, o nome dos alvos para linkar também mudou para o padrão Namespace
 target_link_libraries(sueca SFML::Graphics SFML::Window SFML::System)
@@ -24,18 +30,18 @@ endif()
 
 # ... (mantenha o restante do arquivo como está)
 
-# Comando para copiar a pasta data para o diretório de build
+# Comando para copiar a pasta assets para o diretório de build
 add_custom_command(TARGET sueca POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/data
-    $<TARGET_FILE_DIR:sueca>/data
+    ${CMAKE_CURRENT_SOURCE_DIR}/assets
+    $<TARGET_FILE_DIR:sueca>/assets
 )
 
-# Se estiver no macOS, precisamos garantir que a pasta data vá para dentro do Bundle também
+# Se estiver no macOS, precisamos garantir que a pasta assets vá para dentro do Bundle também
 if(APPLE)
     add_custom_command(TARGET sueca POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_CURRENT_SOURCE_DIR}/data
-        $<TARGET_BUNDLE_CONTENT_DIR:sueca>/Resources/data
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets
+        $<TARGET_BUNDLE_CONTENT_DIR:sueca>/Resources/assets
     )
 endif()

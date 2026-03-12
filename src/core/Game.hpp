@@ -5,10 +5,10 @@
 #include <memory>
 #include <vector>
 #include <string>
-#include "CardDeck.hpp"
-#include "Player.hpp"
-#include "GameContext.hpp"
-#include "UIManager.hpp"
+#include "../gameplay/CardDeck.hpp"
+#include "../gameplay/Player.hpp"
+#include "../core/GameContext.hpp"
+#include "../ui/UIManager.hpp"
 
 class Game {
 public:
@@ -20,8 +20,8 @@ public:
 private:
     const sf::Vector2u WINDOW_SIZE{1280, 720};
     const std::string GAME_TITLE = "Sueca";
-    const std::string BG_PATH = "data/bg.png";
-    const std::string FONT_PATH = "data/arial.ttf";
+    const std::string BG_PATH = "assets/bg.png";
+    const std::string FONT_PATH = "assets/arial.ttf";
     const sf::Vector2f DECK_SPAWN_POS{640.0f, 360.0f};
     
     const sf::Vector2f TEAM0_PILE_POS{920.0f, 620.0f}; 
