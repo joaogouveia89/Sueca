@@ -26,11 +26,12 @@ private:
     const sf::Vector2f DECK_SPAWN_POS{640.0f, 360.0f};
     
     // Positions for the won cards piles
-    const sf::Vector2f TEAM0_PILE_POS{920.0f, 620.0f};  // Bottom Right (Human/CPU2 Team)
-    const sf::Vector2f TEAM1_PILE_POS{200.0f, 620.0f}; // Top Right (CPU1/CPU3 Team)
+    const sf::Vector2f TEAM0_PILE_POS{920.0f, 620.0f};  // Bottom Right
+    const sf::Vector2f TEAM1_PILE_POS{200.0f, 100.0f};  // Top Left
     
     // --- Enums & Structs ---
     enum class GameState {
+        MAIN_MENU,
         SHOWING_TRUMP,
         PLAYING,
         RESOLVING_TRICK
@@ -42,6 +43,14 @@ private:
     sf::Sprite backgroundSprite;
     sf::Font font;
     sf::Text scoreText;
+
+    // --- Main Menu UI Components ---
+    sf::Text titleText;
+    sf::Text versionText;
+    sf::RectangleShape newGameBtn;
+    sf::Text newGameText;
+    sf::RectangleShape aboutBtn;
+    sf::Text aboutText;
 
     std::unique_ptr<CardDeck> deck;
     std::vector<std::unique_ptr<Player>> players;
@@ -69,7 +78,9 @@ private:
     // --- Initialization Helpers ---
     void setupMacOSPath();
     void loadAssets();
+    void setupMainMenuUI();
     void initializePlayers();
+    void startNewGame();
     void dealCards();
 
     // --- Main Loop Helpers ---
@@ -84,6 +95,7 @@ private:
     void transitionToPlayingState();
 
     // --- Input & Turn Logic ---
+    void handleMainMenuClick(sf::Vector2f mousePos);
     void handleMouseClick(sf::Vector2f mousePos);
     void playHumanCard(int cardIndex);
     void playCpuTurn();

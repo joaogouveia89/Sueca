@@ -14,17 +14,19 @@
 Game::Game() 
     : window(sf::VideoMode(WINDOW_SIZE), GAME_TITLE),
       backgroundSprite(backgroundTexture),
-      scoreText(font), // FIX SFML 3: Agora exige a fonte na inicialização!
+      scoreText(font),
+      titleText(font),
+      versionText(font),
+      newGameText(font),
+      aboutText(font),
       team0Score(0),
       team1Score(0)
 {
     setupMacOSPath();
     loadAssets();
-    initializePlayers();
     
-    deck = std::make_unique<CardDeck>();
-    deck->shuffle();
-    dealCards();
+    // Start the game in the Main Menu state instead of dealing right away
+    currentState = GameState::MAIN_MENU;
 }
 
 Game::~Game() {}
@@ -75,10 +77,72 @@ void Game::loadAssets() {
         scoreText.setOutlineThickness(2.0f);
         scoreText.setPosition({980.0f, 20.0f});
         updateScoreText();
-        std::cout << "Font loaded successfully." << std::endl;
+        
+        setupMainMenuUI();
+        std::cout << "Font and UI loaded successfully." << std::endl;
     } else {
         std::cerr << "Failed to load font: " << FONT_PATH << ". Make sure it exists!" << std::endl;
     }
+}
+
+// Configures the Main Menu text, buttons, and positions
+void Game::setupMainMenuUI() {
+    // Title
+    titleText.setString("SUECA");
+    titleText.setCharacterSize(80);
+    titleText.setFillColor(sf::Color::White);
+    titleText.setOutlineColor(sf::Color::Black);
+    titleText.setOutlineThickness(4.0f);
+    auto titleBounds = titleText.getLocalBounds();
+    titleText.setOrigin({titleBounds.size.x / 2.0f, titleBounds.size.y / 2.0f});
+    titleText.setPosition({640.0f, 200.0f});
+
+    // Version
+    versionText.setString("v1.0.0");
+    versionText.setCharacterSize(20);
+    versionText.setFillColor(sf::Color(200, 200, 200));
+    auto verBounds = versionText.getLocalBounds();
+    versionText.setOrigin({verBounds.size.x / 2.0f, verBounds.size.y / 2.0f});
+    versionText.setPosition({640.0f, 260.0f});
+
+    // Buttons Setup Helper
+    auto setupButton = [](sf::RectangleShape& btn, sf::Text& txt, const std::string& str, float yPos) {
+        btn.setSize({250.0f, 60.0f});
+        btn.setFillColor(sf::Color(50, 50, 50, 200));
+        btn.setOutlineColor(sf::Color::White);
+        btn.setOutlineThickness(2.0f);
+        btn.setOrigin({125.0f, 30.0f}); // Center of 250x60
+        btn.setPosition({640.0f, yPos});
+
+        txt.setString(str);
+        txt.setCharacterSize(30);
+        txt.setFillColor(sf::Color::White);
+        auto txtBounds = txt.getLocalBounds();
+        txt.setOrigin({txtBounds.size.x / 2.0f, txtBounds.size.y / 2.0f});
+        txt.setPosition({640.0f, yPos - 5.0f}); // Slight offset for visual centering
+    };
+
+    setupButton(newGameBtn, newGameText, "New Game", 400.0f);
+    setupButton(aboutBtn, aboutText, "About", 480.0f);
+}
+
+// Resets game variables and kicks off a fresh match
+void Game::startNewGame() {
+    team0Score = 0;
+    team1Score = 0;
+    updateScoreText();
+
+    team0Pile.clear();
+    team1Pile.clear();
+    tableCards.clear();
+    
+    // Re-initialize players to ensure clean hands and fresh AI memory
+    players.clear();
+    initializePlayers();
+
+    deck = std::make_unique<CardDeck>();
+    deck->shuffle();
+    dealCards();
 }
 
 // Sets up the 4 players, placing the Human at index 0 and CPU memory capacities
@@ -148,7 +212,13 @@ void Game::processEvents() {
         if (const auto* mousePressed = event->getIf<sf::Event::MouseButtonPressed>()) {
             if (mousePressed->button == sf::Mouse::Button::Left) {
                 sf::Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
-                handleMouseClick(mousePos);
+                
+                // Route click logic based on current screen
+                if (currentState == GameState::MAIN_MENU) {
+                    handleMainMenuClick(mousePos);
+                } else {
+                    handleMouseClick(mousePos);
+                }
             }
         }
     }
@@ -157,6 +227,9 @@ void Game::processEvents() {
 // Routes game logic based on the current active state
 void Game::update(float deltaTime) {
     switch (currentState) {
+        case GameState::MAIN_MENU:
+            // No animations to update in the menu for now
+            break;
         case GameState::SHOWING_TRUMP:
             updateShowingTrumpState(deltaTime);
             break;
@@ -169,29 +242,36 @@ void Game::update(float deltaTime) {
     }
 }
 
-// Clears the screen and draws all entities (background, hands, table)
+// Clears the screen and draws all entities depending on the current state
 void Game::render() {
     window.clear(sf::Color::Black);
     window.draw(backgroundSprite);
 
-    // Draw the piles first so they stay in the background
-    for (const auto& card : team0Pile) card->render(window);
-    for (const auto& card : team1Pile) card->render(window);
+    if (currentState == GameState::MAIN_MENU) {
+        // Draw Menu UI
+        window.draw(titleText);
+        window.draw(versionText);
+        window.draw(newGameBtn);
+        window.draw(newGameText);
+        window.draw(aboutBtn);
+        window.draw(aboutText);
+    } else {
+        // Draw Game Entities
+        for (const auto& card : team0Pile) card->render(window);
+        for (const auto& card : team1Pile) card->render(window);
 
-    // Draw players hands
-    for (const auto& player : players) {
-        for (const auto& card : player->getHand()) {
+        for (const auto& player : players) {
+            for (const auto& card : player->getHand()) {
+                card->render(window);
+            }
+        }
+
+        for (const auto& card : tableCards) {
             card->render(window);
         }
-    }
 
-    // Draw cards currently in the middle of the table
-    for (const auto& card : tableCards) {
-        card->render(window);
+        window.draw(scoreText);
     }
-
-    // Draw UI Elements
-    window.draw(scoreText);
 
     window.display();
 }
@@ -199,6 +279,8 @@ void Game::render() {
 // ----------------------------------------------------------------------------
 // State Machine Handlers
 // ----------------------------------------------------------------------------
+
+// ... [O RESTANTE DO CÓDIGO (updateShowingTrumpState para baixo) CONTINUA EXATAMENTE IGUAL AO ANTERIOR] ...
 
 // Handles the initial 2-second delay where the trump card is presented
 void Game::updateShowingTrumpState(float deltaTime) {
@@ -263,6 +345,16 @@ void Game::updateResolvingTrickState(float deltaTime) {
 // ----------------------------------------------------------------------------
 // Input & Turn Logic
 // ----------------------------------------------------------------------------
+
+// Handles clicks specifically when in the Main Menu
+void Game::handleMainMenuClick(sf::Vector2f mousePos) {
+    if (newGameBtn.getGlobalBounds().contains(mousePos)) {
+        startNewGame();
+    } 
+    else if (aboutBtn.getGlobalBounds().contains(mousePos)) {
+        std::cout << "About clicked! (Screen not implemented yet)" << std::endl;
+    }
+}
 
 // Processes user click, validates Z-index overdraw, and checks Sueca rules
 void Game::handleMouseClick(sf::Vector2f mousePos) {
