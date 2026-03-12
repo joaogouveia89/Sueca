@@ -1,5 +1,6 @@
 #include "Game.hpp"
 #include <iostream>
+#include <algorithm>
 
 #ifdef __APPLE__
     #include <mach-o/dyld.h>
@@ -7,6 +8,9 @@
     #include <unistd.h>
 #endif
 
+// ----------------------------------------------------------------------------
+// Constructor & Destructor
+// ----------------------------------------------------------------------------
 Game::Game() 
     : window(sf::VideoMode(WINDOW_SIZE), GAME_TITLE),
       backgroundSprite(backgroundTexture)
@@ -22,6 +26,11 @@ Game::Game()
 
 Game::~Game() {}
 
+// ----------------------------------------------------------------------------
+// Initialization Helpers
+// ----------------------------------------------------------------------------
+
+// Fixes the working directory issue when running from a macOS .app bundle
 void Game::setupMacOSPath() {
 #ifdef __APPLE__
     char path[1024];
@@ -37,6 +46,7 @@ void Game::setupMacOSPath() {
 #endif
 }
 
+// Loads and scales the background texture to fit the window perfectly
 void Game::loadBackground() {
     if (backgroundTexture.loadFromFile(BG_PATH)) {
         backgroundSprite.setTexture(backgroundTexture, true); 
@@ -58,13 +68,15 @@ void Game::loadBackground() {
     }
 }
 
+// Sets up the 4 players, placing the Human at index 0 and CPU memory capacities
 void Game::initializePlayers() {
-    players.push_back(std::make_unique<Player>(0, "You", false, 40)); // Human
-    players.push_back(std::make_unique<Player>(1, "CPU 1", true, 4));
-    players.push_back(std::make_unique<Player>(2, "CPU 2", true, 20));
-    players.push_back(std::make_unique<Player>(3, "CPU 3", true, 40));
+    players.push_back(std::make_unique<Player>(0, "You", false, 40));   // Human
+    players.push_back(std::make_unique<Player>(1, "CPU 1", true, 4));   // Low memory
+    players.push_back(std::make_unique<Player>(2, "CPU 2", true, 20));  // Medium memory
+    players.push_back(std::make_unique<Player>(3, "CPU 3", true, 40));  // Perfect memory
 }
 
+// Distributes 10 cards to each player and establishes the initial state (Trump showing)
 void Game::dealCards() {
     const int CARDS_PER_PLAYER = 10;
 
@@ -72,11 +84,8 @@ void Game::dealCards() {
         auto dealtCards = deck->drawCards(CARDS_PER_PLAYER);
         
         for (auto& card : dealtCards) {
-            // Keep cards in the center initially
             card->setPosition(DECK_SPAWN_POS, true); 
             card->setRotation(0.0f, true);
-            
-            // All cards start face down
             card->setFaceUp(false); 
         }
         players[i]->setCards(dealtCards);
@@ -87,14 +96,18 @@ void Game::dealCards() {
     // Define the trump card as the last card dealt to CPU 3 (Left player).
     // Because CPU 3 is rendered last, this card will appear visually on top of the deck!
     trumpCardRef = players[3]->getHand().back();
-    trumpCardRef->setFaceUp(true); // Reveal the trump
+    trumpCardRef->setFaceUp(true); 
     trumpSuit = trumpCardRef->getSuit();
 
-    // Initialize state machine
     currentState = GameState::SHOWING_TRUMP;
     stateTimer = 0.0f;
 }
 
+// ----------------------------------------------------------------------------
+// Main Game Loop Methods
+// ----------------------------------------------------------------------------
+
+// Core game loop: keeps the window open, tracks time, and ticks the engine
 void Game::run() {
     sf::Clock clock;
     while (window.isOpen()) {
@@ -107,6 +120,7 @@ void Game::run() {
     }
 }
 
+// Intercepts OS events (closing window, keyboard, mouse)
 void Game::processEvents() {
     while (const std::optional event = window.pollEvent()) {
         if (event->is<sf::Event::Closed>()) {
@@ -121,7 +135,6 @@ void Game::processEvents() {
 
         if (const auto* mousePressed = event->getIf<sf::Event::MouseButtonPressed>()) {
             if (mousePressed->button == sf::Mouse::Button::Left) {
-                // Convert screen click pixel to 2D world coordinates
                 sf::Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
                 handleMouseClick(mousePos);
             }
@@ -129,33 +142,118 @@ void Game::processEvents() {
     }
 }
 
+// Routes game logic based on the current active state
+void Game::update(float deltaTime) {
+    switch (currentState) {
+        case GameState::SHOWING_TRUMP:
+            updateShowingTrumpState(deltaTime);
+            break;
+        case GameState::PLAYING:
+            updatePlayingState(deltaTime);
+            break;
+        case GameState::RESOLVING_TRICK:
+            updateResolvingTrickState(deltaTime);
+            break;
+    }
+}
+
+// Clears the screen and draws all entities (background, hands, table)
+void Game::render() {
+    window.clear(sf::Color::Black);
+    window.draw(backgroundSprite);
+
+    for (const auto& player : players) {
+        for (const auto& card : player->getHand()) {
+            card->render(window);
+        }
+    }
+
+    for (const auto& card : tableCards) {
+        card->render(window);
+    }
+
+    window.display();
+}
+
+// ----------------------------------------------------------------------------
+// State Machine Handlers
+// ----------------------------------------------------------------------------
+
+// Handles the initial 2-second delay where the trump card is presented
+void Game::updateShowingTrumpState(float deltaTime) {
+    stateTimer += deltaTime;
+    
+    if (stateTimer >= 2.0f) {
+        transitionToPlayingState();
+    }
+    
+    for (const auto& player : players) {
+        for (const auto& card : player->getHand()) {
+            card->update(deltaTime); 
+        }
+    }
+    updateTableCardPositions(deltaTime);
+}
+
+// Prepares the game data to start receiving player inputs
+void Game::transitionToPlayingState() {
+    currentState = GameState::PLAYING;
+    trumpCardRef->setFaceUp(false); 
+    
+    for (auto& card : players[0]->getHand()) {
+        card->setFaceUp(true);
+    }
+
+    firstPlayer = 0; 
+    currentPlayer = 0; 
+    cardsPlayedInTrick = 0;
+    cpuTimer = 0.0f;
+}
+
+// Updates animations and triggers the CPU turn if applicable
+void Game::updatePlayingState(float deltaTime) {
+    updatePlayerCardPositions(deltaTime);
+    updateTableCardPositions(deltaTime);
+
+    if (currentPlayer != 0 && cardsPlayedInTrick < 4) {
+        cpuTimer += deltaTime;
+        if (cpuTimer >= 1.0f) { 
+            cpuTimer = 0.0f;
+            playCpuTurn();
+        }
+    }
+}
+
+// Freezes the game for 2 seconds to allow players to see the completed trick
+void Game::updateResolvingTrickState(float deltaTime) {
+    stateTimer += deltaTime;
+    
+    updatePlayerCardPositions(deltaTime);
+    updateTableCardPositions(deltaTime);
+
+    if (stateTimer >= 2.0f) {
+        resolveTrick();
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Input & Turn Logic
+// ----------------------------------------------------------------------------
+
+// Processes user click, validates Z-index overdraw, and checks Sueca rules
 void Game::handleMouseClick(sf::Vector2f mousePos) {
-    // Protect input: Do not allow playing cards while dealing, showing trump, or CPU turn
     if (currentState != GameState::PLAYING || currentPlayer != 0) return;
 
     const auto& hand = players[0]->getHand();
 
-    // Reverse Z-index sweep: ensures we only click the card that is visually "on top"
+    // Reverse Z-index sweep ensures we only click the visually "top" card
     for (int j = static_cast<int>(hand.size()) - 1; j >= 0; --j) {
         if (hand[j]->getBounds().contains(mousePos)) {
             
-            // --- SUECA VALIDATION: FOLLOW SUIT RULE ---
-            // If we are not the first to play in the trick, we must follow the lead suit
-            if (cardsPlayedInTrick > 0) {
-                Suit clickedSuit = hand[j]->getSuit();
-                
-                if (clickedSuit != leadSuit) {
-                    // Check if the player has the lead suit in any other card in their hand
-                    bool hasLeadSuit = std::any_of(hand.begin(), hand.end(), 
-                        [this](const std::shared_ptr<Card>& c) { return c->getSuit() == leadSuit; });
-                    
-                    if (hasLeadSuit) {
-                        std::cout << "Invalid move! You must follow the lead suit." << std::endl;
-                        break; // Cancel the click and do not play the card
-                    }
-                }
+            if (!isValidHumanPlay(hand[j])) {
+                std::cout << "Invalid move! You must follow the lead suit." << std::endl;
+                break; 
             }
-            // ----------------------------------------------
 
             playHumanCard(j);
             break; 
@@ -163,11 +261,11 @@ void Game::handleMouseClick(sf::Vector2f mousePos) {
     }
 }
 
+// Executes the human player's choice and moves the card to the table
 void Game::playHumanCard(int cardIndex) {
     std::shared_ptr<Card> playedCard = players[0]->playCard(cardIndex);
     
     if (playedCard) {
-        // If it is the first card of the round, it determines the suit that should be followed (lead suit).
         if (cardsPlayedInTrick == 0) {
             leadSuit = playedCard->getSuit();
         }
@@ -176,30 +274,21 @@ void Game::playHumanCard(int cardIndex) {
         playedCard->setPosition(getTableTargetPosition(0));
         playedCard->setRotation(0.0f);
         
+        notifyPlayersCardPlayed(playedCard);
         cardsPlayedInTrick++;
-        advanceTurn(); // Pass the turn!§
+        advanceTurn();
     }
 }
 
-sf::Vector2f Game::getTableTargetPosition(int playerId) const {
-    switch (playerId) {
-        case 0: return {640.0f, 400.0f}; // Human (Further below)
-        case 1: return {690.0f, 360.0f}; // Right CPU
-        case 2: return {640.0f, 320.0f}; // CPU Top
-        case 3: return {590.0f, 360.0f}; // Left CPU
-        default: return DECK_SPAWN_POS;
-    }
-}
-
-
+// Asks the AI for a decision and moves the chosen CPU card to the table
 void Game::playCpuTurn() {
     bool isFirst = (cardsPlayedInTrick == 0);
     
-    // The CPU intelligence you already had in Player.cpp
+    // TEMPORARY: using basic logic until SuecaAI is implemented
     auto playedCard = players[currentPlayer]->thinkAndPlay(leadSuit, isFirst);
 
     if (playedCard) {
-        playedCard->setFaceUp(true); // Turn the CPU card face up!
+        playedCard->setFaceUp(true); 
         
         if (isFirst) {
             leadSuit = playedCard->getSuit();
@@ -209,27 +298,60 @@ void Game::playCpuTurn() {
         playedCard->setPosition(getTableTargetPosition(currentPlayer));
         playedCard->setRotation(0.0f);
         
+        notifyPlayersCardPlayed(playedCard);
         cardsPlayedInTrick++;
         advanceTurn();
     }
 }
 
+// Passes the turn to the next player, or triggers resolution if table is full
 void Game::advanceTurn() {
     if (cardsPlayedInTrick == 4) {
-        // All 4 cards have been played! Pause for the human to see the result.
         currentState = GameState::RESOLVING_TRICK;
-        stateTimer = 0.0f; // We reused the status timer.
+        stateTimer = 0.0f; 
     } else {
-        // Pass to the next player (0 -> 1 -> 2 -> 3 -> 0)
         currentPlayer = (currentPlayer + 1) % 4;
     }
 }
 
+// Evaluates the trick, declares the winner, clears the table, and resets for next trick
 void Game::resolveTrick() {
-    // 1. A primeira carta jogada (índice 0) é a vencedora temporária
+    int trickWinner = determineTrickWinner();
+
+    std::cout << "Player " << players[trickWinner]->getName() << " won the trick!" << std::endl;
+
+    tableCards.clear();
+    cardsPlayedInTrick = 0;
+    
+    firstPlayer = trickWinner; 
+    currentPlayer = trickWinner; 
+    currentState = GameState::PLAYING;
+}
+
+// ----------------------------------------------------------------------------
+// Game Rules & Validations
+// ----------------------------------------------------------------------------
+
+// Checks if the user's card selection respects the "Follow Suit" rule
+bool Game::isValidHumanPlay(const std::shared_ptr<Card>& playedCard) const {
+    if (cardsPlayedInTrick == 0) return true;
+
+    Suit clickedSuit = playedCard->getSuit();
+    if (clickedSuit != leadSuit) {
+        const auto& hand = players[0]->getHand();
+        bool hasLeadSuit = std::any_of(hand.begin(), hand.end(), 
+            [this](const std::shared_ptr<Card>& c) { return c->getSuit() == leadSuit; });
+        
+        if (hasLeadSuit) return false;
+    }
+    
+    return true;
+}
+
+// Calculates the winner of the 4 cards currently on the table
+int Game::determineTrickWinner() const {
     int winningCardIndex = 0;
 
-    // 2. Compara com as outras 3 cartas da mesa
     for (int i = 1; i < 4; ++i) {
         auto currentWinningCard = tableCards[winningCardIndex];
         auto challengingCard = tableCards[i];
@@ -238,17 +360,14 @@ void Game::resolveTrick() {
         bool challengerIsTrump = (challengingCard->getSuit() == trumpSuit);
 
         if (challengerIsTrump && !currentIsTrump) {
-            // Regra 1: Trunfo sempre ganha de Não-Trunfo
             winningCardIndex = i;
         } 
         else if (challengerIsTrump && currentIsTrump) {
-            // Regra 2: Dois Trunfos na mesa, ganha o mais forte
             if (Card::getSuecaPower(challengingCard->getSymbol()) > Card::getSuecaPower(currentWinningCard->getSymbol())) {
                 winningCardIndex = i;
             }
         } 
         else if (!challengerIsTrump && !currentIsTrump) {
-            // Regra 3: Nenhum é trunfo. A carta DEVE ser do naipe puxado para ter chance.
             if (challengingCard->getSuit() == leadSuit) {
                 if (Card::getSuecaPower(challengingCard->getSymbol()) > Card::getSuecaPower(currentWinningCard->getSymbol())) {
                     winningCardIndex = i;
@@ -257,22 +376,21 @@ void Game::resolveTrick() {
         }
     }
 
-    // 3. Descobre de quem é a carta vencedora
-    // Como a ordem na mesa segue a ordem dos jogadores a partir do firstPlayer, fazemos essa matemática circular:
-    int trickWinner = (firstPlayer + winningCardIndex) % 4;
-
-    std::cout << "O jogador " << players[trickWinner]->getName() << " ganhou a vaza!" << std::endl;
-
-    // 4. Limpa a mesa para a próxima rodada
-    tableCards.clear();
-    cardsPlayedInTrick = 0;
-    
-    // 5. O vencedor da rodada atual é quem começa puxando a próxima!
-    firstPlayer = trickWinner; 
-    currentPlayer = trickWinner; 
-    currentState = GameState::PLAYING;
+    return (firstPlayer + winningCardIndex) % 4;
 }
 
+// Broadcasts the played card to all players so they can update their memory
+void Game::notifyPlayersCardPlayed(std::shared_ptr<Card> card) {
+    for (auto& player : players) {
+        player->memorizeCard(card);
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Animation & View Mapping
+// ----------------------------------------------------------------------------
+
+// Calculates the smooth LERP targets for cards currently in players' hands
 void Game::updatePlayerCardPositions(float deltaTime) {
     const float SPACING = 40.0f; 
 
@@ -287,7 +405,6 @@ void Game::updatePlayerCardPositions(float deltaTime) {
                 case 0: // Bottom (Human)
                     target.x = 400.0f + (j * 50.0f);
                     target.y = 600.0f;
-                    rot = 0.0f;
                     break;
                 case 1: // Right (CPU 1)
                     target.x = 1100.0f;
@@ -313,107 +430,20 @@ void Game::updatePlayerCardPositions(float deltaTime) {
     }
 }
 
+// Triggers the animation cycle for cards currently placed on the table
 void Game::updateTableCardPositions(float deltaTime) {
     for (auto& card : tableCards) {
         card->update(deltaTime);
     }
 }
 
-void Game::update(float deltaTime) {
-    // The main update loop now acts as a clean state router
-    switch (currentState) {
-        case GameState::SHOWING_TRUMP:
-            updateShowingTrumpState(deltaTime);
-            break;
-        case GameState::PLAYING:
-            updatePlayingState(deltaTime);
-            break;
-        case GameState::RESOLVING_TRICK:
-            updateResolvingTrickState(deltaTime);
-            break;
-    }
-}
-
-void Game::updateResolvingTrickState(float deltaTime) {
-    stateTimer += deltaTime;
-    
-    updatePlayerCardPositions(deltaTime);
-    updateTableCardPositions(deltaTime);
-
-    // Wait 2 seconds with the cards on the table, then resolve the round.
-    if (stateTimer >= 2.0f) {
-        resolveTrick();
-    }
-}
-
-void Game::updateShowingTrumpState(float deltaTime) {
-    stateTimer += deltaTime;
-    
-    // Check if it's time to deal the cards
-    if (stateTimer >= 2.0f) {
-        transitionToPlayingState();
-    }
-    
-    // Keep updating animations (they will stay smoothly at DECK_SPAWN_POS)
-    for (const auto& player : players) {
-        for (const auto& card : player->getHand()) {
-            card->update(deltaTime); 
-        }
-    }
-    updateTableCardPositions(deltaTime);
-}
-
-void Game::transitionToPlayingState() {
-    currentState = GameState::PLAYING;
-    trumpCardRef->setFaceUp(false); 
-    
-    for (auto& card : players[0]->getHand()) {
-        card->setFaceUp(true);
-    }
-
-    // Initialize turns system
-    firstPlayer = 0; // Remember who drew the first card of the round.
-    currentPlayer = 0; // The human starts the first turn
-    cardsPlayedInTrick = 0;
-    cpuTimer = 0.0f;
-}
-
-void Game::updatePlayingState(float deltaTime) {
-    updatePlayerCardPositions(deltaTime);
-    updateTableCardPositions(deltaTime);
-
-    // If it's the CPU's turn, count the time before it plays.
-    if (currentPlayer != 0 && cardsPlayedInTrick < 4) {
-        cpuTimer += deltaTime;
-        if (cpuTimer >= 1.0f) { // 1 second of "thought"
-            cpuTimer = 0.0f;
-            playCpuTurn();
-        }
-    }
-}
-
-
-void Game::render() {
-    window.clear(sf::Color::Black);
-    window.draw(backgroundSprite);
-
-    // Only render the cards, positions are handled by update() now.
-    for (const auto& player : players) {
-        for (const auto& card : player->getHand()) {
-            card->render(window);
-        }
-    }
-
-    // Render table cards
-    for (const auto& card : tableCards) {
-        card->render(window);
-    }
-
-    window.display();
-}
-
-void Game::notifyPlayersCardPlayed(std::shared_ptr<Card> card) {
-    for (auto& player : players) {
-        player->memorizeCard(card);
+// Maps player IDs to screen coordinates forming a cross pattern in the center
+sf::Vector2f Game::getTableTargetPosition(int playerId) const {
+    switch (playerId) {
+        case 0: return {640.0f, 400.0f}; // Human (Bottom)
+        case 1: return {690.0f, 360.0f}; // Right CPU
+        case 2: return {640.0f, 320.0f}; // Top CPU
+        case 3: return {590.0f, 360.0f}; // Left CPU
+        default: return DECK_SPAWN_POS;
     }
 }
