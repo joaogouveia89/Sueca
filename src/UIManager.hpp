@@ -8,7 +8,8 @@
 enum class MenuAction {
     NONE,
     START_GAME,
-    SHOW_ABOUT
+    SHOW_ABOUT,
+    BACK_TO_MENU
 };
 
 class UIManager {
@@ -26,6 +27,13 @@ private:
     sf::RectangleShape aboutBtn;
     sf::Text aboutText;
 
+    // --- Game Over UI ---
+    sf::RectangleShape overlay;
+    sf::Text gameOverTitle;
+    sf::Text gameOverWinnerText;
+    sf::RectangleShape backToMenuBtn;
+    sf::Text backToMenuText;
+
 public:
     UIManager();
     ~UIManager() = default;
@@ -33,14 +41,19 @@ public:
     // Initialization
     bool loadFont(const std::string& fontPath);
     void setupMainMenu();
+    void setupGameOverUI();
 
     // Updates
     void updateScoreText(int team0Score, int team1Score);
+    void updateGameOverUI(int team0Score, int team1Score);
+    
     MenuAction handleMenuClick(sf::Vector2f mousePos);
+    MenuAction handleGameOverClick(sf::Vector2f mousePos);
 
     // Rendering
     void renderMainMenu(sf::RenderWindow& window);
     void renderGameUI(sf::RenderWindow& window);
+    void renderGameOverUI(sf::RenderWindow& window);
 };
 
 #endif

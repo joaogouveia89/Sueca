@@ -31,7 +31,8 @@ private:
         MAIN_MENU,
         SHOWING_TRUMP,
         PLAYING,
-        RESOLVING_TRICK
+        RESOLVING_TRICK,
+        GAME_OVER
     };
 
     sf::RenderWindow window;
@@ -72,12 +73,15 @@ private:
     void render();
 
     void updateShowingTrumpState(float deltaTime);
+    void transitionToPlayingState();
     void updatePlayingState(float deltaTime);
     void updateResolvingTrickState(float deltaTime);
-    void transitionToPlayingState();
+    void transitionToGameOverState();
 
     void handleMainMenuClick(sf::Vector2f mousePos);
+    void handleGameOverClick(sf::Vector2f mousePos);
     void handleMouseClick(sf::Vector2f mousePos);
+    
     void playHumanCard(int cardIndex);
     void playCpuTurn();
     void advanceTurn();

@@ -58,7 +58,6 @@ void Game::loadAssets() {
     }
 
     if (uiManager.loadFont(FONT_PATH)) {
-        uiManager.setupMainMenu();
         uiManager.updateScoreText(0, 0);
     }
 }
@@ -143,6 +142,8 @@ void Game::processEvents() {
                 
                 if (currentState == GameState::MAIN_MENU) {
                     handleMainMenuClick(mousePos);
+                } else if (currentState == GameState::GAME_OVER) {
+                    handleGameOverClick(mousePos);
                 } else {
                     handleMouseClick(mousePos);
                 }
@@ -154,6 +155,7 @@ void Game::processEvents() {
 void Game::update(float deltaTime) {
     switch (currentState) {
         case GameState::MAIN_MENU: break;
+        case GameState::GAME_OVER: break;
         case GameState::SHOWING_TRUMP: updateShowingTrumpState(deltaTime); break;
         case GameState::PLAYING: updatePlayingState(deltaTime); break;
         case GameState::RESOLVING_TRICK: updateResolvingTrickState(deltaTime); break;
@@ -167,6 +169,7 @@ void Game::render() {
     if (currentState == GameState::MAIN_MENU) {
         uiManager.renderMainMenu(window);
     } else {
+        // Draw standard game elements
         for (const auto& card : team0Pile) card->render(window);
         for (const auto& card : team1Pile) card->render(window);
         for (const auto& player : players) {
@@ -175,6 +178,11 @@ void Game::render() {
         for (const auto& card : tableCards) card->render(window);
         
         uiManager.renderGameUI(window);
+
+        // If game is over, draw the Game Over overlay on top of everything
+        if (currentState == GameState::GAME_OVER) {
+            uiManager.renderGameOverUI(window);
+        }
     }
 
     window.display();
@@ -228,6 +236,11 @@ void Game::updateResolvingTrickState(float deltaTime) {
     if (stateTimer >= 2.0f) resolveTrick();
 }
 
+void Game::transitionToGameOverState() {
+    currentState = GameState::GAME_OVER;
+    uiManager.updateGameOverUI(team0Score, team1Score);
+}
+
 // ----------------------------------------------------------------------------
 // Input & Turn Logic
 // ----------------------------------------------------------------------------
@@ -239,6 +252,14 @@ void Game::handleMainMenuClick(sf::Vector2f mousePos) {
         startNewGame();
     } else if (action == MenuAction::SHOW_ABOUT) {
         std::cout << "About clicked! We will implement this screen next." << std::endl;
+    }
+}
+
+void Game::handleGameOverClick(sf::Vector2f mousePos) {
+    MenuAction action = uiManager.handleGameOverClick(mousePos);
+    
+    if (action == MenuAction::BACK_TO_MENU) {
+        currentState = GameState::MAIN_MENU;
     }
 }
 
@@ -329,7 +350,14 @@ void Game::resolveTrick() {
     cardsPlayedInTrick = 0;
     firstPlayer = trickWinner; 
     currentPlayer = trickWinner; 
-    currentState = GameState::PLAYING;
+
+    // --- GAME OVER CHECK ---
+    // If the player's hand is empty, all 10 tricks (40 cards) have been played
+    if (players[0]->getHand().empty()) {
+        transitionToGameOverState();
+    } else {
+        currentState = GameState::PLAYING;
+    }
 }
 
 // ----------------------------------------------------------------------------
