@@ -8,6 +8,13 @@
 #include "CardDeck.hpp"
 #include "Player.hpp"
 
+struct GameContext {
+    Suit leadSuit;
+    Suit trumpSuit;
+    bool isFirstToPlay;
+    const std::vector<std::shared_ptr<Card>>& tableCards;
+};
+
 class Game {
 public:
     Game();
@@ -81,6 +88,8 @@ private:
     void playCpuTurn();
     void updateResolvingTrickState(float deltaTime);
     void resolveTrick();
+
+    void notifyPlayersCardPlayed(std::shared_ptr<Card> card);
 };
 
 #endif

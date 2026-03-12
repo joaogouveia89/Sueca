@@ -1,8 +1,8 @@
 #include "Player.hpp"
 #include <iostream>
 
-Player::Player(int _id, std::string _name, bool _isCPU) 
-    : id(_id), name(_name), isCPU(_isCPU) {}
+Player::Player(int _id, std::string _name, bool _isCPU, int _memoryCapacity) 
+    : id(_id), name(_name), isCPU(_isCPU), memoryCapacity(_memoryCapacity) {}
 
 Player::~Player() {}
 
@@ -53,4 +53,15 @@ std::shared_ptr<Card> Player::thinkAndPlay(Suit leadSuit, bool isFirstToPlay) {
     }
 
     return playCard(chosenIndex);
+}
+
+void Player::memorizeCard(std::shared_ptr<Card> card) {
+    if (memoryCapacity <= 0) return; // Jogador com memória de peixe (Dory)
+
+    personalMemory.push_back(card);
+
+    // Se excedeu a capacidade, esquece a carta mais antiga (a que está na frente da fila)
+    if (personalMemory.size() > memoryCapacity) {
+        personalMemory.pop_front(); 
+    }
 }

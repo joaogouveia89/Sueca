@@ -59,10 +59,10 @@ void Game::loadBackground() {
 }
 
 void Game::initializePlayers() {
-    players.push_back(std::make_unique<Player>(0, "You", false)); // Human
-    players.push_back(std::make_unique<Player>(1, "CPU 1", true));
-    players.push_back(std::make_unique<Player>(2, "CPU 2", true));
-    players.push_back(std::make_unique<Player>(3, "CPU 3", true));
+    players.push_back(std::make_unique<Player>(0, "You", false, 40)); // Human
+    players.push_back(std::make_unique<Player>(1, "CPU 1", true, 4));
+    players.push_back(std::make_unique<Player>(2, "CPU 2", true, 20));
+    players.push_back(std::make_unique<Player>(3, "CPU 3", true, 40));
 }
 
 void Game::dealCards() {
@@ -352,4 +352,10 @@ void Game::render() {
     }
 
     window.display();
+}
+
+void Game::notifyPlayersCardPlayed(std::shared_ptr<Card> card) {
+    for (auto& player : players) {
+        player->memorizeCard(card);
+    }
 }
