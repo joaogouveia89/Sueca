@@ -8,28 +8,25 @@
 #include "CardDeck.hpp"
 #include "Player.hpp"
 #include "GameContext.hpp"
+#include "UIManager.hpp"
 
 class Game {
 public:
     Game();
     ~Game();
 
-    // Starts the main game loop
     void run(); 
 
 private:
-    // --- Constants ---
     const sf::Vector2u WINDOW_SIZE{1280, 720};
     const std::string GAME_TITLE = "Sueca";
     const std::string BG_PATH = "data/bg.png";
     const std::string FONT_PATH = "data/arial.ttf";
     const sf::Vector2f DECK_SPAWN_POS{640.0f, 360.0f};
     
-    // Positions for the won cards piles
-    const sf::Vector2f TEAM0_PILE_POS{920.0f, 620.0f};  // Bottom Right
-    const sf::Vector2f TEAM1_PILE_POS{200.0f, 100.0f};  // Top Left
+    const sf::Vector2f TEAM0_PILE_POS{920.0f, 620.0f}; 
+    const sf::Vector2f TEAM1_PILE_POS{200.0f, 100.0f}; 
     
-    // --- Enums & Structs ---
     enum class GameState {
         MAIN_MENU,
         SHOWING_TRUMP,
@@ -37,64 +34,48 @@ private:
         RESOLVING_TRICK
     };
 
-    // --- Core Game Components ---
     sf::RenderWindow window;
     sf::Texture backgroundTexture;
     sf::Sprite backgroundSprite;
-    sf::Font font;
-    sf::Text scoreText;
-
-    // --- Main Menu UI Components ---
-    sf::Text titleText;
-    sf::Text versionText;
-    sf::RectangleShape newGameBtn;
-    sf::Text newGameText;
-    sf::RectangleShape aboutBtn;
-    sf::Text aboutText;
+    
+    // --- Sub-Systems ---
+    UIManager uiManager;
 
     std::unique_ptr<CardDeck> deck;
     std::vector<std::unique_ptr<Player>> players;
     std::vector<std::shared_ptr<Card>> tableCards;
     
-    // Won card piles
     std::vector<std::shared_ptr<Card>> team0Pile;
     std::vector<std::shared_ptr<Card>> team1Pile;
 
-    // --- Game State Variables ---
     GameState currentState;
-    float stateTimer;         // General purpose timer for state transitions
-    float cpuTimer;           // Artificial delay for CPU thinking
+    float stateTimer;         
+    float cpuTimer;           
     std::shared_ptr<Card> trumpCardRef;
-    Suit leadSuit;            // The suit of the first card played in the trick
-    Suit trumpSuit;           // The dominant suit of the match
-    int firstPlayer;          // The player who started the current trick
-    int currentPlayer;        // The player whose turn it is right now
-    int cardsPlayedInTrick;   // Counter for cards on the table (0 to 4)
+    Suit leadSuit;            
+    Suit trumpSuit;           
+    int firstPlayer;          
+    int currentPlayer;        
+    int cardsPlayedInTrick;   
 
-    // Scores
-    int team0Score;           // Score for Player 0 and Player 2
-    int team1Score;           // Score for Player 1 and Player 3
+    int team0Score;           
+    int team1Score;           
 
-    // --- Initialization Helpers ---
     void setupMacOSPath();
     void loadAssets();
-    void setupMainMenuUI();
     void initializePlayers();
     void startNewGame();
     void dealCards();
 
-    // --- Main Loop Helpers ---
     void processEvents();
     void update(float deltaTime);
     void render();
 
-    // --- State Machine Helpers ---
     void updateShowingTrumpState(float deltaTime);
     void updatePlayingState(float deltaTime);
     void updateResolvingTrickState(float deltaTime);
     void transitionToPlayingState();
 
-    // --- Input & Turn Logic ---
     void handleMainMenuClick(sf::Vector2f mousePos);
     void handleMouseClick(sf::Vector2f mousePos);
     void playHumanCard(int cardIndex);
@@ -102,13 +83,10 @@ private:
     void advanceTurn();
     void resolveTrick();
 
-    // --- Game Rules & Validation ---
     bool isValidHumanPlay(const std::shared_ptr<Card>& playedCard) const;
     int determineTrickWinner() const;
     void notifyPlayersCardPlayed(std::shared_ptr<Card> card);
-    void updateScoreText();
 
-    // --- Animation & View ---
     void updatePlayerCardPositions(float deltaTime);
     void updateTableCardPositions(float deltaTime);
     void updatePileCardPositions(float deltaTime);

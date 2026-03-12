@@ -14,18 +14,11 @@
 Game::Game() 
     : window(sf::VideoMode(WINDOW_SIZE), GAME_TITLE),
       backgroundSprite(backgroundTexture),
-      scoreText(font),
-      titleText(font),
-      versionText(font),
-      newGameText(font),
-      aboutText(font),
       team0Score(0),
       team1Score(0)
 {
     setupMacOSPath();
     loadAssets();
-    
-    // Start the game in the Main Menu state instead of dealing right away
     currentState = GameState::MAIN_MENU;
 }
 
@@ -35,7 +28,6 @@ Game::~Game() {}
 // Initialization Helpers
 // ----------------------------------------------------------------------------
 
-// Fixes the working directory issue when running from a macOS .app bundle
 void Game::setupMacOSPath() {
 #ifdef __APPLE__
     char path[1024];
@@ -51,7 +43,6 @@ void Game::setupMacOSPath() {
 #endif
 }
 
-// Loads background texture and UI fonts
 void Game::loadAssets() {
     if (backgroundTexture.loadFromFile(BG_PATH)) {
         backgroundSprite.setTexture(backgroundTexture, true); 
@@ -64,79 +55,23 @@ void Game::loadAssets() {
         
         backgroundSprite.setScale({scaleX, scaleY});
         backgroundSprite.setPosition({0, 0}); 
-        
-        std::cout << "Background loaded successfully." << std::endl;
-    } else {
-        std::cerr << "Failed to load background image: " << BG_PATH << std::endl;
     }
 
-    if (font.openFromFile(FONT_PATH)) {
-        scoreText.setCharacterSize(24);
-        scoreText.setFillColor(sf::Color::White);
-        scoreText.setOutlineColor(sf::Color::Black);
-        scoreText.setOutlineThickness(2.0f);
-        scoreText.setPosition({980.0f, 20.0f});
-        updateScoreText();
-        
-        setupMainMenuUI();
-        std::cout << "Font and UI loaded successfully." << std::endl;
-    } else {
-        std::cerr << "Failed to load font: " << FONT_PATH << ". Make sure it exists!" << std::endl;
+    if (uiManager.loadFont(FONT_PATH)) {
+        uiManager.setupMainMenu();
+        uiManager.updateScoreText(0, 0);
     }
 }
 
-// Configures the Main Menu text, buttons, and positions
-void Game::setupMainMenuUI() {
-    // Title
-    titleText.setString("SUECA");
-    titleText.setCharacterSize(80);
-    titleText.setFillColor(sf::Color::White);
-    titleText.setOutlineColor(sf::Color::Black);
-    titleText.setOutlineThickness(4.0f);
-    auto titleBounds = titleText.getLocalBounds();
-    titleText.setOrigin({titleBounds.size.x / 2.0f, titleBounds.size.y / 2.0f});
-    titleText.setPosition({640.0f, 200.0f});
-
-    // Version
-    versionText.setString("v1.0.0");
-    versionText.setCharacterSize(20);
-    versionText.setFillColor(sf::Color(200, 200, 200));
-    auto verBounds = versionText.getLocalBounds();
-    versionText.setOrigin({verBounds.size.x / 2.0f, verBounds.size.y / 2.0f});
-    versionText.setPosition({640.0f, 260.0f});
-
-    // Buttons Setup Helper
-    auto setupButton = [](sf::RectangleShape& btn, sf::Text& txt, const std::string& str, float yPos) {
-        btn.setSize({250.0f, 60.0f});
-        btn.setFillColor(sf::Color(50, 50, 50, 200));
-        btn.setOutlineColor(sf::Color::White);
-        btn.setOutlineThickness(2.0f);
-        btn.setOrigin({125.0f, 30.0f}); // Center of 250x60
-        btn.setPosition({640.0f, yPos});
-
-        txt.setString(str);
-        txt.setCharacterSize(30);
-        txt.setFillColor(sf::Color::White);
-        auto txtBounds = txt.getLocalBounds();
-        txt.setOrigin({txtBounds.size.x / 2.0f, txtBounds.size.y / 2.0f});
-        txt.setPosition({640.0f, yPos - 5.0f}); // Slight offset for visual centering
-    };
-
-    setupButton(newGameBtn, newGameText, "New Game", 400.0f);
-    setupButton(aboutBtn, aboutText, "About", 480.0f);
-}
-
-// Resets game variables and kicks off a fresh match
 void Game::startNewGame() {
     team0Score = 0;
     team1Score = 0;
-    updateScoreText();
+    uiManager.updateScoreText(team0Score, team1Score);
 
     team0Pile.clear();
     team1Pile.clear();
     tableCards.clear();
     
-    // Re-initialize players to ensure clean hands and fresh AI memory
     players.clear();
     initializePlayers();
 
@@ -145,21 +80,18 @@ void Game::startNewGame() {
     dealCards();
 }
 
-// Sets up the 4 players, placing the Human at index 0 and CPU memory capacities
 void Game::initializePlayers() {
-    players.push_back(std::make_unique<Player>(0, "You", false, 40));   // Human
-    players.push_back(std::make_unique<Player>(1, "CPU 1", true, 4));   // Low memory
-    players.push_back(std::make_unique<Player>(2, "CPU 2", true, 20));  // Medium memory
-    players.push_back(std::make_unique<Player>(3, "CPU 3", true, 40));  // Perfect memory
+    players.push_back(std::make_unique<Player>(0, "You", false, 40));   
+    players.push_back(std::make_unique<Player>(1, "CPU 1", true, 4));   
+    players.push_back(std::make_unique<Player>(2, "CPU 2", true, 20));  
+    players.push_back(std::make_unique<Player>(3, "CPU 3", true, 40));  
 }
 
-// Distributes 10 cards to each player and establishes the initial state (Trump showing)
 void Game::dealCards() {
     const int CARDS_PER_PLAYER = 10;
 
     for (size_t i = 0; i < players.size(); i++) {
         auto dealtCards = deck->drawCards(CARDS_PER_PLAYER);
-        
         for (auto& card : dealtCards) {
             card->setPosition(DECK_SPAWN_POS, true); 
             card->setRotation(0.0f, true);
@@ -169,8 +101,6 @@ void Game::dealCards() {
     }
 
     players[0]->sortHand();
-
-    // Define the trump card as the last card dealt to CPU 3 (Left player).
     trumpCardRef = players[3]->getHand().back();
     trumpCardRef->setFaceUp(true); 
     trumpSuit = trumpCardRef->getSuit();
@@ -183,7 +113,6 @@ void Game::dealCards() {
 // Main Game Loop Methods
 // ----------------------------------------------------------------------------
 
-// Core game loop: keeps the window open, tracks time, and ticks the engine
 void Game::run() {
     sf::Clock clock;
     while (window.isOpen()) {
@@ -196,7 +125,6 @@ void Game::run() {
     }
 }
 
-// Intercepts OS events (closing window, keyboard, mouse)
 void Game::processEvents() {
     while (const std::optional event = window.pollEvent()) {
         if (event->is<sf::Event::Closed>()) {
@@ -213,7 +141,6 @@ void Game::processEvents() {
             if (mousePressed->button == sf::Mouse::Button::Left) {
                 sf::Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
                 
-                // Route click logic based on current screen
                 if (currentState == GameState::MAIN_MENU) {
                     handleMainMenuClick(mousePos);
                 } else {
@@ -224,53 +151,30 @@ void Game::processEvents() {
     }
 }
 
-// Routes game logic based on the current active state
 void Game::update(float deltaTime) {
     switch (currentState) {
-        case GameState::MAIN_MENU:
-            // No animations to update in the menu for now
-            break;
-        case GameState::SHOWING_TRUMP:
-            updateShowingTrumpState(deltaTime);
-            break;
-        case GameState::PLAYING:
-            updatePlayingState(deltaTime);
-            break;
-        case GameState::RESOLVING_TRICK:
-            updateResolvingTrickState(deltaTime);
-            break;
+        case GameState::MAIN_MENU: break;
+        case GameState::SHOWING_TRUMP: updateShowingTrumpState(deltaTime); break;
+        case GameState::PLAYING: updatePlayingState(deltaTime); break;
+        case GameState::RESOLVING_TRICK: updateResolvingTrickState(deltaTime); break;
     }
 }
 
-// Clears the screen and draws all entities depending on the current state
 void Game::render() {
     window.clear(sf::Color::Black);
     window.draw(backgroundSprite);
 
     if (currentState == GameState::MAIN_MENU) {
-        // Draw Menu UI
-        window.draw(titleText);
-        window.draw(versionText);
-        window.draw(newGameBtn);
-        window.draw(newGameText);
-        window.draw(aboutBtn);
-        window.draw(aboutText);
+        uiManager.renderMainMenu(window);
     } else {
-        // Draw Game Entities
         for (const auto& card : team0Pile) card->render(window);
         for (const auto& card : team1Pile) card->render(window);
-
         for (const auto& player : players) {
-            for (const auto& card : player->getHand()) {
-                card->render(window);
-            }
+            for (const auto& card : player->getHand()) card->render(window);
         }
-
-        for (const auto& card : tableCards) {
-            card->render(window);
-        }
-
-        window.draw(scoreText);
+        for (const auto& card : tableCards) card->render(window);
+        
+        uiManager.renderGameUI(window);
     }
 
     window.display();
@@ -280,33 +184,21 @@ void Game::render() {
 // State Machine Handlers
 // ----------------------------------------------------------------------------
 
-// ... [O RESTANTE DO CÓDIGO (updateShowingTrumpState para baixo) CONTINUA EXATAMENTE IGUAL AO ANTERIOR] ...
-
-// Handles the initial 2-second delay where the trump card is presented
 void Game::updateShowingTrumpState(float deltaTime) {
     stateTimer += deltaTime;
-    
-    if (stateTimer >= 2.0f) {
-        transitionToPlayingState();
-    }
+    if (stateTimer >= 2.0f) transitionToPlayingState();
     
     for (const auto& player : players) {
-        for (const auto& card : player->getHand()) {
-            card->update(deltaTime); 
-        }
+        for (const auto& card : player->getHand()) card->update(deltaTime); 
     }
     updateTableCardPositions(deltaTime);
     updatePileCardPositions(deltaTime);
 }
 
-// Prepares the game data to start receiving player inputs
 void Game::transitionToPlayingState() {
     currentState = GameState::PLAYING;
     trumpCardRef->setFaceUp(false); 
-    
-    for (auto& card : players[0]->getHand()) {
-        card->setFaceUp(true);
-    }
+    for (auto& card : players[0]->getHand()) card->setFaceUp(true);
 
     firstPlayer = 0; 
     currentPlayer = 0; 
@@ -314,7 +206,6 @@ void Game::transitionToPlayingState() {
     cpuTimer = 0.0f;
 }
 
-// Updates animations and triggers the CPU turn if applicable
 void Game::updatePlayingState(float deltaTime) {
     updatePlayerCardPositions(deltaTime);
     updateTableCardPositions(deltaTime);
@@ -329,104 +220,71 @@ void Game::updatePlayingState(float deltaTime) {
     }
 }
 
-// Freezes the game for 2 seconds to allow players to see the completed trick
 void Game::updateResolvingTrickState(float deltaTime) {
     stateTimer += deltaTime;
-    
     updatePlayerCardPositions(deltaTime);
     updateTableCardPositions(deltaTime);
     updatePileCardPositions(deltaTime);
-
-    if (stateTimer >= 2.0f) {
-        resolveTrick();
-    }
+    if (stateTimer >= 2.0f) resolveTrick();
 }
 
 // ----------------------------------------------------------------------------
 // Input & Turn Logic
 // ----------------------------------------------------------------------------
 
-// Handles clicks specifically when in the Main Menu
 void Game::handleMainMenuClick(sf::Vector2f mousePos) {
-    if (newGameBtn.getGlobalBounds().contains(mousePos)) {
+    MenuAction action = uiManager.handleMenuClick(mousePos);
+    
+    if (action == MenuAction::START_GAME) {
         startNewGame();
-    } 
-    else if (aboutBtn.getGlobalBounds().contains(mousePos)) {
-        std::cout << "About clicked! (Screen not implemented yet)" << std::endl;
+    } else if (action == MenuAction::SHOW_ABOUT) {
+        std::cout << "About clicked! We will implement this screen next." << std::endl;
     }
 }
 
-// Processes user click, validates Z-index overdraw, and checks Sueca rules
 void Game::handleMouseClick(sf::Vector2f mousePos) {
     if (currentState != GameState::PLAYING || currentPlayer != 0) return;
-
     const auto& hand = players[0]->getHand();
 
-    // Reverse Z-index sweep ensures we only click the visually "top" card
     for (int j = static_cast<int>(hand.size()) - 1; j >= 0; --j) {
         if (hand[j]->getBounds().contains(mousePos)) {
-            
-            if (!isValidHumanPlay(hand[j])) {
-                std::cout << "Invalid move! You must follow the lead suit." << std::endl;
-                break; 
-            }
-
+            if (!isValidHumanPlay(hand[j])) break; 
             playHumanCard(j);
             break; 
         }
     }
 }
 
-// Executes the human player's choice and moves the card to the table
 void Game::playHumanCard(int cardIndex) {
     std::shared_ptr<Card> playedCard = players[0]->playCard(cardIndex);
-    
     if (playedCard) {
-        if (cardsPlayedInTrick == 0) {
-            leadSuit = playedCard->getSuit();
-        }
-
+        if (cardsPlayedInTrick == 0) leadSuit = playedCard->getSuit();
         tableCards.push_back(playedCard);
         playedCard->setPosition(getTableTargetPosition(0));
         playedCard->setRotation(0.0f);
-        
         notifyPlayersCardPlayed(playedCard);
         cardsPlayedInTrick++;
         advanceTurn();
     }
 }
 
-// Asks the AI for a decision and moves the chosen CPU card to the table
 void Game::playCpuTurn() {
     bool isFirst = (cardsPlayedInTrick == 0);
-    
-    GameContext ctx = {
-        leadSuit,
-        trumpSuit,
-        isFirst,
-        tableCards
-    };
-
+    GameContext ctx = { leadSuit, trumpSuit, isFirst, tableCards };
     auto playedCard = players[currentPlayer]->thinkAndPlay(ctx);
 
     if (playedCard) {
         playedCard->setFaceUp(true); 
-        
-        if (isFirst) {
-            leadSuit = playedCard->getSuit();
-        }
-
+        if (isFirst) leadSuit = playedCard->getSuit();
         tableCards.push_back(playedCard);
         playedCard->setPosition(getTableTargetPosition(currentPlayer));
         playedCard->setRotation(0.0f);
-        
         notifyPlayersCardPlayed(playedCard);
         cardsPlayedInTrick++;
         advanceTurn();
     }
 }
 
-// Passes the turn to the next player, or triggers resolution if table is full
 void Game::advanceTurn() {
     if (cardsPlayedInTrick == 4) {
         currentState = GameState::RESOLVING_TRICK;
@@ -436,53 +294,39 @@ void Game::advanceTurn() {
     }
 }
 
-// Evaluates the trick, declares the winner, clears the table, and resets for next trick
 void Game::resolveTrick() {
     int trickWinner = determineTrickWinner();
-    int winningTeam = trickWinner % 2; // Team 0 (Players 0 & 2), Team 1 (Players 1 & 3)
-    
+    int winningTeam = trickWinner % 2; 
     int trickPoints = 0;
 
-    // Calculate points and move cards to the winner's team pile
     for (const auto& card : tableCards) {
         trickPoints += card->getPoints();
-        card->setFaceUp(false); // Hide card for the pile
+        card->setFaceUp(false); 
         
         if (winningTeam == 0) {
-            card->setRotation(0.0f); // Vertical for Team 0 (Human)
-            
-            // Add a tiny visual offset so the pile looks thick
+            card->setRotation(0.0f); 
             sf::Vector2f target = TEAM0_PILE_POS;
             target.x += team0Pile.size() * 0.2f;
             target.y -= team0Pile.size() * 0.2f;
-            
             card->setPosition(target);
             team0Pile.push_back(card);
         } else {
-            card->setRotation(90.0f); // Horizontal for Team 1 (CPU)
-            
-            // Apply offset for the 3D pile effect
+            card->setRotation(90.0f); 
             sf::Vector2f target = TEAM1_PILE_POS;
             target.x += team1Pile.size() * 0.2f;
             target.y -= team1Pile.size() * 0.2f;
-            
             card->setPosition(target);
             team1Pile.push_back(card);
         }
     }
 
-    if (winningTeam == 0) {
-        team0Score += trickPoints;
-    } else {
-        team1Score += trickPoints;
-    }
+    if (winningTeam == 0) team0Score += trickPoints;
+    else team1Score += trickPoints;
 
-    std::cout << "Player " << players[trickWinner]->getName() << " won the trick! (+" << trickPoints << " pts)" << std::endl;
-    updateScoreText();
+    uiManager.updateScoreText(team0Score, team1Score);
 
     tableCards.clear();
     cardsPlayedInTrick = 0;
-    
     firstPlayer = trickWinner; 
     currentPlayer = trickWinner; 
     currentState = GameState::PLAYING;
@@ -492,102 +336,60 @@ void Game::resolveTrick() {
 // Game Rules & Validations
 // ----------------------------------------------------------------------------
 
-// Checks if the user's card selection respects the "Follow Suit" rule
 bool Game::isValidHumanPlay(const std::shared_ptr<Card>& playedCard) const {
     if (cardsPlayedInTrick == 0) return true;
-
     Suit clickedSuit = playedCard->getSuit();
     if (clickedSuit != leadSuit) {
         const auto& hand = players[0]->getHand();
         bool hasLeadSuit = std::any_of(hand.begin(), hand.end(), 
             [this](const std::shared_ptr<Card>& c) { return c->getSuit() == leadSuit; });
-        
         if (hasLeadSuit) return false;
     }
-    
     return true;
 }
 
-// Calculates the winner of the 4 cards currently on the table
 int Game::determineTrickWinner() const {
     int winningCardIndex = 0;
-
     for (int i = 1; i < 4; ++i) {
         auto currentWinningCard = tableCards[winningCardIndex];
         auto challengingCard = tableCards[i];
-
         bool currentIsTrump = (currentWinningCard->getSuit() == trumpSuit);
         bool challengerIsTrump = (challengingCard->getSuit() == trumpSuit);
 
-        if (challengerIsTrump && !currentIsTrump) {
-            winningCardIndex = i;
-        } 
+        if (challengerIsTrump && !currentIsTrump) winningCardIndex = i;
         else if (challengerIsTrump && currentIsTrump) {
-            if (Card::getSuecaPower(challengingCard->getSymbol()) > Card::getSuecaPower(currentWinningCard->getSymbol())) {
-                winningCardIndex = i;
-            }
+            if (Card::getSuecaPower(challengingCard->getSymbol()) > Card::getSuecaPower(currentWinningCard->getSymbol())) winningCardIndex = i;
         } 
         else if (!challengerIsTrump && !currentIsTrump) {
             if (challengingCard->getSuit() == leadSuit) {
-                if (Card::getSuecaPower(challengingCard->getSymbol()) > Card::getSuecaPower(currentWinningCard->getSymbol())) {
-                    winningCardIndex = i;
-                }
+                if (Card::getSuecaPower(challengingCard->getSymbol()) > Card::getSuecaPower(currentWinningCard->getSymbol())) winningCardIndex = i;
             }
         }
     }
-
     return (firstPlayer + winningCardIndex) % 4;
 }
 
-// Broadcasts the played card to all players so they can update their memory
 void Game::notifyPlayersCardPlayed(std::shared_ptr<Card> card) {
-    for (auto& player : players) {
-        player->memorizeCard(card);
-    }
-}
-
-// Updates the scoreboard string
-void Game::updateScoreText() {
-    scoreText.setString("Team Us: " + std::to_string(team0Score) + "\nTeam CPU: " + std::to_string(team1Score));
+    for (auto& player : players) player->memorizeCard(card);
 }
 
 // ----------------------------------------------------------------------------
 // Animation & View Mapping
 // ----------------------------------------------------------------------------
 
-// Calculates the smooth LERP targets for cards currently in players' hands
 void Game::updatePlayerCardPositions(float deltaTime) {
     const float SPACING = 40.0f; 
-
     for (size_t i = 0; i < players.size(); ++i) {
         const auto& hand = players[i]->getHand();
-
         for (size_t j = 0; j < hand.size(); ++j) {
             sf::Vector2f target;
             float rot = 0.0f;
-
             switch (i) {
-                case 0: // Bottom (Human)
-                    target.x = 400.0f + (j * 50.0f);
-                    target.y = 600.0f;
-                    break;
-                case 1: // Right (CPU 1)
-                    target.x = 1100.0f;
-                    target.y = 200.0f + (j * SPACING);
-                    rot = 270.0f;
-                    break;
-                case 2: // Top (CPU 2)
-                    target.x = 800.0f - (j * 50.0f); 
-                    target.y = 120.0f;
-                    rot = 180.0f;
-                    break;
-                case 3: // Left (CPU 3)
-                    target.x = 180.0f;
-                    target.y = 500.0f - (j * SPACING);
-                    rot = 90.0f;
-                    break;
+                case 0: target.x = 400.0f + (j * 50.0f); target.y = 600.0f; break;
+                case 1: target.x = 1100.0f; target.y = 200.0f + (j * SPACING); rot = 270.0f; break;
+                case 2: target.x = 800.0f - (j * 50.0f); target.y = 120.0f; rot = 180.0f; break;
+                case 3: target.x = 180.0f; target.y = 500.0f - (j * SPACING); rot = 90.0f; break;
             }
-
             hand[j]->setPosition(target);
             hand[j]->setRotation(rot);
             hand[j]->update(deltaTime);
@@ -595,26 +397,21 @@ void Game::updatePlayerCardPositions(float deltaTime) {
     }
 }
 
-// Triggers the animation cycle for cards currently placed on the table
 void Game::updateTableCardPositions(float deltaTime) {
-    for (auto& card : tableCards) {
-        card->update(deltaTime);
-    }
+    for (auto& card : tableCards) card->update(deltaTime);
 }
 
-// Triggers the animation cycle for cards sitting in the won piles
 void Game::updatePileCardPositions(float deltaTime) {
     for (auto& card : team0Pile) card->update(deltaTime);
     for (auto& card : team1Pile) card->update(deltaTime);
 }
 
-// Maps player IDs to screen coordinates forming a cross pattern in the center
 sf::Vector2f Game::getTableTargetPosition(int playerId) const {
     switch (playerId) {
-        case 0: return {640.0f, 400.0f}; // Human (Bottom)
-        case 1: return {690.0f, 360.0f}; // Right CPU
-        case 2: return {640.0f, 320.0f}; // Top CPU
-        case 3: return {590.0f, 360.0f}; // Left CPU
+        case 0: return {640.0f, 400.0f}; 
+        case 1: return {690.0f, 360.0f}; 
+        case 2: return {640.0f, 320.0f}; 
+        case 3: return {590.0f, 360.0f}; 
         default: return DECK_SPAWN_POS;
     }
 }
